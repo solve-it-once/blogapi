@@ -2,8 +2,7 @@
 
 name = Blog API
 description = Allows users to post content using applications that support XML-RPC blog APIs.
-package = Core
-version = VERSION
+package = Services
 core = 7.x
 files[] = blogapi.module
 files[] = blogapi.install
