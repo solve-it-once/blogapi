@@ -20,6 +20,18 @@ function blogapi_install() {
 function blogapi_uninstall() {
   // Remove tables.
   drupal_uninstall_schema('blogapi');
+
+  // Remove variables
+  variable_del('blogapi_node_types');
+  variable_del('blogapi_extensions_default');
+  variable_del('blogapi_uploadsize_default');
+  variable_del('blogapi_usersize_default');
+
+  foreach (user_roles(FALSE, 'administer content with blog api') as $rid => $role) {
+    variable_del('blogapi_extensions_'. $rid);
+    variable_del('blogapi_uploadsize_'. $rid);
+    variable_del('blogapi_usersize_'. $rid);
+}
 }
 
 
