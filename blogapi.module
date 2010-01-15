@@ -842,10 +842,15 @@ function blogapi_menu() {
  */
 function blogapi_init() {
   if (drupal_is_front_page()) {
-    drupal_add_link(array('rel' => 'EditURI',
-                          'type' => 'application/rsd+xml',
-                          'title' => t('RSD'),
-                          'href' => url('blogapi/rsd', array('absolute' => TRUE))));
+    drupal_add_html_head_link(
+      array(
+        'rel' => 'EditURI',
+        'type' => 'application/rsd+xml',
+        'title' => t('RSD'),
+        'href' => url('blogapi/rsd', array('absolute' => TRUE))
+      ),
+      TRUE
+    );
   }
 }
 
