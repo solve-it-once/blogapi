@@ -1,0 +1,5 @@
+name = BlogAPI
+description = Allow users to post content using applications that support Blog APIs. Requires one or more provider modules to be enabled.
+package = Services
+core = 7.x
+dependencies[] = services

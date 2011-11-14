@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * Implements hook_blogapi_info().
+ */
+function blogapi_blogger_blogapi_info() {
+  return array(
+    'version' => 1,
+    'type' => 'xmlrpc',
+    'name' => 'Blogger',
+    'endpoint' => 'blogapi/blogger'
+  );
+}

@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * Implements hook_blogapi_info().
+ */
+function blogapi_metaweblog_blogapi_info() {
+  return array(
+    'version' => 1,
+    'type' => 'xmlrpc',
+    'name' => 'MetaWeblog',
+    'endpoint' => 'blogapi/metaweblog'
+  );
+}

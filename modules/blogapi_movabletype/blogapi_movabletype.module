@@ -1,0 +1,238 @@
+<?php
+/**
+ * @file
+ * Provides MovableType services for BlogAPI
+ */
+
+/**
+ * Implements hook_blogapi_info().
+ */
+function blogapi_movabletype_blogapi_info() {
+  return array(
+    'version' => 1,
+    'type' => 'xmlrpc',
+    'name' => 'MovableType',
+    'endpoint' => 'blogapi/movabletype'
+  );
+}
+
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function blogapi_movabletype_ctools_plugin_api() {
+  list($module, $api) = func_get_args();
+  if ($module == "services" && $api == "services") {
+    return array("version" => "3");
+  }
+}
+
+/**
+ * Implements hook_default_services_endpoint().
+ */
+function blogapi_movabletype_default_services_endpoint() {
+  $export = array();
+
+  $endpoint = new stdClass;
+  $endpoint->disabled = FALSE; /* Edit this to true to make a default endpoint disabled initially */
+  $endpoint->api_version = 3;
+  $endpoint->name = 'movabletype';
+  $endpoint->server = 'xmlrpc_server';
+  $endpoint->path = 'blogapi/movabletype';
+  $endpoint->authentication = array();
+  $endpoint->server_settings = '';
+  $endpoint->resources = array(
+    'mt' => array(
+      'actions' => array(
+        'publishPost' => array(
+          'enabled' => 1,
+        ),
+        'getRecentPostTitles' => array(
+          'enabled' => 1,
+        ),
+        'getCategoryList' => array(
+          'enabled' => 1,
+        ),
+        'getPostCategories' => array(
+          'enabled' => 1,
+        ),
+        'setPostCategories' => array(
+          'enabled' => 1,
+        ),
+        'supportedMethods' => array(
+          'enabled' => 1,
+        ),
+        'supportedTextFilters' => array(
+          'enabled' => 1,
+        ),
+      ),
+    ),
+  );
+  $endpoint->debug = 0;
+  $export['movabletype'] = $endpoint;
+
+  return $export;
+}
+
+/**
+ * Implements hook_services_resources().
+ */
+function blogapi_movabletype_services_resources() {
+  return array(
+    'mt' => array(
+      'actions' => array(
+        'publishPost' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_movabletype_publish_post',
+          'help' => 'Publish (rebuild) all of the static files related to an entry from your blog. Equivalent to saving an entry in the system (but without the ping).',
+          'args' => array(
+            array(
+              'postid' => 'array',
+              'username' => 'string',
+              'password' => 'string',
+            ),
+          ),
+        ),
+        'getRecentPostTitles' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_movabletype_get_recent_post_titles',
+          'help' => 'Returns a bandwidth-friendly list of the most recent posts in the system.',
+          'args' => array(
+            array(
+              'blogid' => 'array',
+              'username' => 'string',
+              'password' => 'string',
+              'number_of_posts' => 'int',
+            ),
+          ),
+        ),
+        'getCategoryList' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_movabletype_get_category_list',
+          'help' => 'Returns a list of all categories defined in the blog.',
+          'args' => array(
+            array(
+              'blogid' => 'array',
+              'username' => 'string',
+              'password' => 'string',
+            ),
+          ),
+        ),
+        'getPostCategories' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_movabletype_get_post_categories',
+          'help' => 'Returns a list of all categories to which the post is assigned.',
+          'args' => array(
+            array(
+              'postid' => 'array',
+              'username' => 'string',
+              'password' => 'string',
+            ),
+          ),
+        ),
+        'setPostCategories' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_movabletype_set_post_categories',
+          'help' => 'Sets the categories for a post.',
+          'args' => array(
+            array(
+              'postid' => 'array',
+              'username' => 'string',
+              'password' => 'string',
+              'categories' => 'array',
+            ),
+          ),
+        ),
+        'supportedMethods' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_movabletype_supported_methods',
+          'help' => 'Retrieve information about the XML-RPC methods supported by the server.',
+        ),
+        'supportedTextFilters' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_movabletype_supported_text_filters',
+          'help' => 'Retrieve information about the text formatting plugins supported by the server.',
+        ),
+      ),
+    ),
+  );
+}
+
+/**
+ * Service callback for mt.publishPost
+ *
+ * @param $postid
+ * @param $username
+ * @param $password
+ * @return boolean
+ */
+function blogapi_movabletype_publish_post($postid, $username, $password) {
+
+}
+
+/**
+ * Service callback for mt.getRecentPostTitles
+ *
+ * @param $blogid
+ * @param $username
+ * @param $password
+ * @param $number_of_posts
+ * @return array
+ */
+function blogapi_movabletype_get_recent_post_titles($blogid, $username, $password, $number_of_posts) {
+
+}
+
+/**
+ * Service callback for mt.getCategoryList
+ *
+ * @param $blogid
+ * @param $username
+ * @param $password
+ * @return array
+ */
+function blogapi_movabletype_get_category_list($blogid, $username, $password) {
+
+}
+
+/**
+ * Service callback for mt.getPostCategories
+ *
+ * @param $postid
+ * @param $username
+ * @param $password
+ * @return array
+ */
+function blogapi_movabletype_get_post_categories($postid, $username, $password) {
+
+}
+
+/**
+ * Service callback for mt.setPostCategories
+ *
+ * @param $postid
+ * @param $username
+ * @param $password
+ * @param $categories
+ * @return boolean
+ */
+function blogapi_movabletype_set_post_categories($postid, $username, $password, $categories) {
+
+}
+
+/**
+ * Service callback for mt.supportedMethods
+ *
+ * @return array
+ */
+function blogapi_movabletype_supported_methods() {
+  return TRUE;
+}
+
+/**
+ * Service callback for mt.supportedTextFilters
+ *
+ * @return array
+ */
+function blogapi_movabletype_supported_text_filters() {
+
+}
