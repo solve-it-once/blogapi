@@ -8,6 +8,5 @@ function blogapi_metaweblog_blogapi_info() {
     'api_version' => 2,
     'type' => 'xmlrpc',
     'name' => 'MetaWeblog',
-    'endpoint' => 'blogapi/metaweblog'
   );
 }
