@@ -291,3 +291,45 @@ function blogapi_get_api_types() {
   return $api_types;
 }
 
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function blogapi_ctools_plugin_api() {
+  list($module, $api) = func_get_args();
+  if ($module == "services" && $api == "services") {
+    return array("version" => "3");
+  }
+}
+
+/**
+ * Implements hook_default_services_endpoint().
+ */
+function blogapi_default_services_endpoint() {
+  $export = array();
+
+  $api_types = blogapi_get_api_types();
+  foreach ($api_types as $type) {
+    $endpoint = new stdClass;
+    $endpoint->disabled = FALSE;
+    $endpoint->api_version = 3;
+    $endpoint->name = 'blogapi_' . $type;
+    $endpoint->server = $type . '_server';
+    $endpoint->path = 'blogapi/' . $type;
+    $endpoint->authentication = array();
+    $endpoint->server_settings = '';
+
+    // Get all resources for $type APIs
+    $info = blogapi_get_info($type);
+    $resources = array();
+    foreach ($info as $module => $api_info) {
+      $resources += module_invoke($module, 'services_resources');
+    }
+
+    $endpoint->resources = $resources;
+    $endpoint->debug = 0;
+    $export['blogapi_' . $type] = $endpoint;
+  }
+
+  return $export;
+}
+
