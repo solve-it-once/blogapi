@@ -9,7 +9,7 @@
  */
 function blogapi_movabletype_blogapi_info() {
   return array(
-    'version' => 1,
+    'api_version' => 2,
     'type' => 'xmlrpc',
     'name' => 'MovableType',
     'endpoint' => 'blogapi/movabletype'

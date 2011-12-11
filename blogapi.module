@@ -277,7 +277,11 @@ function blogapi_get_api_types() {
   $apis = blogapi_get_info();
   $api_types = array();
   foreach ($apis as $info) {
-    $api_types[$info['type']] = $info['type'];
+    // Only include API types using the correct API version.
+    if ($info['api_version'] == 3) {
+      $api_types[$info['type']] = $info['type'];
+    }
   }
   return $api_types;
 }
+
