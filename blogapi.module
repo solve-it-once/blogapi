@@ -250,10 +250,16 @@ function blogapi_admin_settings_form() {
  * Get all BlogAPI information, optionally filtered by API type
  */
 function blogapi_get_info($api_type = NULL) {
+  // Invoke hook_blogapi_info().
   foreach (module_implements('blogapi_info') as $k => $module) {
-    $api_information[$module] = module_invoke($module, 'blogapi_info');
+    $info = module_invoke($module, 'blogapi_info');
+    if ($info['api_version'] == 2) {
+      $api_information[$module] = $info;
+    }
   }
 
+  // If we don't have an API type filter, then allow the info to be altered
+  // and return it.
   if (is_null($api_type)) {
     drupal_alter('blogapi_info', $api_information);
     return $api_information;
