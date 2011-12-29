@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * Provides MetaWeblog services for BlogAPI
+ */
 
 /**
  * Implements hook_blogapi_info().

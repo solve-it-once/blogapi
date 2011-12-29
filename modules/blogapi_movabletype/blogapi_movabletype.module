@@ -126,6 +126,27 @@ function blogapi_movabletype_services_resources() {
  */
 function blogapi_movabletype_publish_post($postid, $username, $password) {
 
+  $user = blogapi_validate_user($username, $password);
+
+  if (!is_numeric($user->uid)) {
+    // Problem logging in.
+  }
+
+  $node = node_load($postid);
+
+  // Nothing needs to be done: the node is already published.
+  if ($node->status == 1) {
+    return TRUE;
+  }
+
+  if (!node_access('update', $node, $user) || !user_access('administer nodes')) {
+    // User does not have permission to update the node.
+  }
+
+  $node->status = 1;
+  node_save($node);
+
+  return TRUE;
 }
 
 /**
