@@ -361,7 +361,7 @@ function blogapi_default_services_endpoint() {
  */
 function blogapi_error($type, $message) {
   $blogapi_error_function = 'blogapi_' . $type. '_error';
-  $blogapi_error_function($message);
+  return $blogapi_error_function($message);
 }
 
 /**
