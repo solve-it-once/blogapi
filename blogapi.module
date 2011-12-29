@@ -63,18 +63,35 @@ function blogapi_init() {
 /**
  * Ensure that a given user has permission to use BlogAPI
  */
-function blogapi_validate_user($uid) {
-  $account = user_load($uid);
-  if (!user_access('manage content with blogapi', $account)) {
-    return false;
+function blogapi_validate_user($username, $password) {
+  global $user;
+
+  // Check the username and password
+  $tmpuid = user_authenticate($username, $password);
+
+  if ($tmpuid !== FALSE) {
+    // Username and password match up, now check permissions.
+    $tmpuser = user_load_by_name($username);
+
+    if (user_access('manage content with blogapi', $tmpuser)) {
+      // User has appropriate permissions
+      $user = $tmpuser;
+      return $user;
+    }
+    else {
+      return t('You do not have permission to edit this blog.');
+    }
   }
-  return true;
+  else {
+    return t('Invalid username or password');
+  }
 }
 
 /**
  * Return a BlogAPI RSD for XML-RPC APIs
  *
  * @todo: Implement apiLink correctly using service endpoint URL
+ * @todo: Implement multi-user blogs
  */
 function blogapi_rsd() {
   global $base_url;
@@ -102,8 +119,8 @@ __RSD__;
     if ($module == $default_xmlrpc_api) {
       $default = 'true';
     }
-    $info['endpoint'] = $base_url . '/' .$info['endpoint'];
-    print "\n      <api name='{$info['name']}' preferred='{$default}' apiLink='{$info['endpoint']}' blogID='{$blogid}' />";
+    $endpoint = $base_url . '/' . 'blogapi' . '/' . $info['type'];
+    print "\n      <api name='{$info['name']}' preferred='{$default}' apiLink='{$endpoint}' blogID='{$blogid}' />";
   }
 
   print <<<__RSD__
@@ -111,6 +128,7 @@ __RSD__;
     </apis>
   </service>
 </rsd>
+
 __RSD__;
 
 }
@@ -303,6 +321,9 @@ function blogapi_ctools_plugin_api() {
 
 /**
  * Implements hook_default_services_endpoint().
+ *
+ * This function is enabling all resources by default, but that behavior
+ * can be overridden via hook_blogapi_default_services_alter().
  */
 function blogapi_default_services_endpoint() {
   $export = array();
@@ -330,6 +351,39 @@ function blogapi_default_services_endpoint() {
     $export['blogapi_' . $type] = $endpoint;
   }
 
+  drupal_alter('blogapi_default_services', $export);
+
   return $export;
 }
 
+/**
+ * Prepare an error message to send to the client
+ */
+function blogapi_error($type, $message) {
+  $blogapi_error_function = 'blogapi_' . $type. '_error';
+  $blogapi_error_function($message);
+}
+
+/**
+ * Prepare an error message for returning to the XMLRPC caller.
+ */
+function blogapi_xmlrpc_error($message) {
+  static $xmlrpcusererr;
+
+  if (!is_array($message)) {
+    $message = array($message);
+  }
+
+  $message = implode(' ', $message);
+
+  return xmlrpc_error($xmlrpcusererr + 1, strip_tags($message));
+}
+
+/**
+ * Prepare an error message for returning to the REST caller.
+ *
+ * @todo: Write this function.
+ */
+function blogapi_rest_error($message) {
+
+}
