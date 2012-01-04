@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Provides Blogger services for BlogAPI
@@ -14,3 +15,89 @@ function blogapi_blogger_blogapi_info() {
     'name' => 'Blogger',
   );
 }
+
+
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function blogapi_blogger_ctools_plugin_api() {
+  list($module, $api) = func_get_args();
+  if ($module == "services" && $api == "services") {
+    return array("version" => "3");
+  }
+}
+
+/**
+ * Implements hook_services_resources().
+ */
+function blogapi_blogger_services_resources() {
+  return array(
+    'blogger' => array(
+      'actions' => array(
+        'publishPost' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_movabletype_publish_post',
+          'enabled' => 1,
+          'help' => 'Publish (rebuild) all of the static files related to an entry from your blog. Equivalent to saving an entry in the system (but without the ping).',
+          'args' => array(
+            array(
+              'postid' => 'array',
+              'username' => 'string',
+              'password' => 'string',
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/*
+Services:
+
+array(
+
+    array(
+      'blogger.getUsersBlogs',
+      'blogapi_blogger_get_users_blogs',
+      array('array', 'string', 'string', 'string'),
+      t('Returns a list of blogs to which an author has posting privileges.'),
+    ),
+
+    array(
+      'blogger.getUserInfo',
+      'blogapi_blogger_get_user_info',
+      array('struct', 'string', 'string', 'string'),
+      t('Returns information about an author in the system.'),
+    ),
+
+    array(
+      'blogger.newPost',
+      'blogapi_blogger_new_post',
+      array('string', 'string', 'string', 'string', 'string', 'string', 'boolean'),
+      t('Creates a new post, and optionally publishes it.'),
+    ),
+
+    array(
+      'blogger.editPost',
+      'blogapi_blogger_edit_post',
+      array('boolean', 'string', 'string', 'string', 'string', 'string', 'boolean'),
+      t('Updates the information about an existing post.'),
+    ),
+
+    array(
+      'blogger.getPost',
+      'blogapi_blogger_get_post',
+      array('struct', 'string', 'string', 'string', 'string'),
+      t('Returns information about a specific post.'),
+    ),
+
+    array(
+      'blogger.deletePost',
+      'blogapi_blogger_delete_post',
+      array('boolean', 'string', 'string', 'string', 'string', 'boolean'),
+      t('Deletes a post.'),
+    ),
+*/
+
+

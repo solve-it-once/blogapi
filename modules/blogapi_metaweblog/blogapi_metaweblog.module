@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Provides MetaWeblog services for BlogAPI
@@ -14,3 +15,111 @@ function blogapi_metaweblog_blogapi_info() {
     'name' => 'MetaWeblog',
   );
 }
+
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function blogapi_metaweblog_ctools_plugin_api() {
+  list($module, $api) = func_get_args();
+  if ($module == "services" && $api == "services") {
+    return array("version" => "3");
+  }
+}
+
+/**
+ * Implements hook_services_resources().
+ */
+function blogapi_metaweblog_services_resources() {
+  return array(
+    'metaWeblog' => array(
+      'actions' => array(
+        'newPost' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_metaweblog_new_post',
+          'enabled' => 1,
+          'help' => 'Creates a new post, and optionally publishes it.',
+          'args' => array(
+            array(
+              'blogid' => 'string',
+              'username' => 'string',
+              'password' => 'string',
+              'content' => 'array',
+              'publish' => 'boolean',
+            ),
+          ),
+        ),
+        'editPost' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_metaweblog_edit_post',
+          'enabled' => 1,
+          'help' => 'Updates information about an existing post.',
+          'args' => array(
+            array(
+              'blogid' => 'string',
+              'username' => 'string',
+              'password' => 'string',
+              'content' => 'array',
+              'publish' => 'boolean',
+            ),
+          ),
+        ),
+        'getPost' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_metaweblog_get_post',
+          'enabled' => 1,
+          'help' => 'Returns information about a specific post.',
+          'args' => array(
+            array(
+              'blogid' => 'string',
+              'username' => 'string',
+              'password' => 'string',
+            ),
+          ),
+        ),
+        'newMediaObject' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_metaweblog_new_media_object',
+          'enabled' => 1,
+          'help' => 'Uploads a file to your webserver.',
+          'args' => array(
+            array(
+              'blogid' => 'string',
+              'username' => 'string',
+              'password' => 'string',
+              'file' => 'array',
+            ),
+          ),
+        ),
+        'getCategories' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_metaweblog_get_categories',
+          'enabled' => 1,
+          'help' => 'Returns a list of all categories to which the post is assigned.',
+          'args' => array(
+            array(
+              'blogid' => 'string',
+              'username' => 'string',
+              'password' => 'string',
+            ),
+          ),
+        ),
+        'getRecentPosts' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_metaweblog_get_recent_posts',
+          'enabled' => 1,
+          'help' => 'Returns a list of the most recent posts in the system.',
+          'args' => array(
+            array(
+              'blogid' => 'string',
+              'username' => 'string',
+              'password' => 'string',
+              'numberOfPosts' => 'int',
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+
