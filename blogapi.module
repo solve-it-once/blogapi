@@ -399,9 +399,7 @@ function blogapi_get_recent_posts($content_type, $user, $number_of_posts, $bodie
 }
 
 /**
- * Validate blog ID, which maps to a content type in Drupal.
- *
- * Only content types configured to work with Blog API are supported.
+ * Validate that a content type is configured to work with BlogAPI
  *
  * @param string $content_type
  *   The machine name of the content type to validate
