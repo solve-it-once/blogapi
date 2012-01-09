@@ -34,16 +34,90 @@ function blogapi_blogger_services_resources() {
   return array(
     'blogger' => array(
       'actions' => array(
-        'publishPost' => array(
+        'getUsersBlogs' => array(
           'access callback' => TRUE,
-          'callback' => 'blogapi_movabletype_publish_post',
+          'callback' => 'blogapi_blogger_get_users_blogs',
           'enabled' => 1,
-          'help' => 'Publish (rebuild) all of the static files related to an entry from your blog. Equivalent to saving an entry in the system (but without the ping).',
+          'help' => 'Returns a list of blogs to which an author has posting privileges.',
           'args' => array(
             array(
-              'postid' => 'array',
+              'appid' => 'string',
               'username' => 'string',
               'password' => 'string',
+            ),
+          ),
+        ),
+        'getUserInfo' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_blogger_get_user_info',
+          'enabled' => 1,
+          'help' => 'Returns information about an author in the system.',
+          'args' => array(
+            array(
+              'appid' => 'string',
+              'username' => 'string',
+              'password' => 'string',
+            ),
+          ),
+        ),
+        'newPost' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_blogger_new_post',
+          'enabled' => 1,
+          'help' => 'Creates a new post, and optionally publishes it.',
+          'args' => array(
+            array(
+              'appid' => 'string',
+              'blogid' => 'string',
+              'username' => 'string',
+              'password' => 'string',
+              'content' => 'string',
+              'publish' => 'boolean',
+            ),
+          ),
+        ),
+        'editPost' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_blogger_edit_post',
+          'enabled' => 1,
+          'help' => 'Updates the information about an existing post.',
+          'args' => array(
+            array(
+              'appid' => 'string',
+              'postid' => 'string',
+              'username' => 'string',
+              'password' => 'string',
+              'content' => 'string',
+              'publish' => 'boolean',
+            ),
+          ),
+        ),
+        'getPost' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_blogger_get_post',
+          'enabled' => 1,
+          'help' => 'Returns information about a specific post.',
+          'args' => array(
+            array(
+              'appid' => 'string',
+              'postid' => 'string',
+              'username' => 'string',
+              'password' => 'string',
+            ),
+          ),
+        ),
+        'deletePost' => array(
+          'access callback' => TRUE,
+          'callback' => 'blogapi_blogger_delete_post',
+          'enabled' => 1,
+          'help' => 'Deletes a post.',
+          'args' => array(
+            array(
+              'appid' => 'string',
+              'postid' => 'string',
+              'username' => 'string',
+              'password' => 'string',
+              'publish' => 'boolean',
             ),
           ),
         ),
@@ -52,52 +126,59 @@ function blogapi_blogger_services_resources() {
   );
 }
 
-/*
-Services:
+/**
+ * Service callback for blogger.getUsersBlogs
+ */
+function blogapi_blogger_get_users_blogs($appid, $username, $password) {
 
-array(
+}
 
-    array(
-      'blogger.getUsersBlogs',
-      'blogapi_blogger_get_users_blogs',
-      array('array', 'string', 'string', 'string'),
-      t('Returns a list of blogs to which an author has posting privileges.'),
-    ),
+/**
+ * Service callback for blogger.getUserInfo
+ */
+function blogapi_blogger_get_user_info($appid, $username, $password) {
 
-    array(
-      'blogger.getUserInfo',
-      'blogapi_blogger_get_user_info',
-      array('struct', 'string', 'string', 'string'),
-      t('Returns information about an author in the system.'),
-    ),
+}
 
-    array(
-      'blogger.newPost',
-      'blogapi_blogger_new_post',
-      array('string', 'string', 'string', 'string', 'string', 'string', 'boolean'),
-      t('Creates a new post, and optionally publishes it.'),
-    ),
+/**
+ * Service callback for blogger.newPost
+ */
+function blogapi_blogger_new_post($appid, $blogid, $username, $password, $content, $publish) {
 
-    array(
-      'blogger.editPost',
-      'blogapi_blogger_edit_post',
-      array('boolean', 'string', 'string', 'string', 'string', 'string', 'boolean'),
-      t('Updates the information about an existing post.'),
-    ),
+}
 
-    array(
-      'blogger.getPost',
-      'blogapi_blogger_get_post',
-      array('struct', 'string', 'string', 'string', 'string'),
-      t('Returns information about a specific post.'),
-    ),
+/**
+ * Service callback for blogger.editPost
+ */
+function blogapi_blogger_edit_post($appid, $blogid, $username, $password, $content, $publish) {
 
-    array(
-      'blogger.deletePost',
-      'blogapi_blogger_delete_post',
-      array('boolean', 'string', 'string', 'string', 'string', 'boolean'),
-      t('Deletes a post.'),
-    ),
-*/
+}
 
+/**
+ * Service callback for blogger.getPost
+ */
+function blogapi_blogger_get_post($appid, $postid, $username, $password) {
 
+}
+
+/**
+ * Service callback for blogger.deletePost
+ */
+function blogapi_blogger_delete_post($appid, $postid, $username, $password, $publish) {
+
+}
+
+/**
+ * Extract the node title from the contents field.
+ */
+function blogapi_blogger_extract_title(&$contents) {
+  if (preg_match('/<title>(.*?)<\/title>/i', $contents, $title)) {
+    $title = strip_tags($title[0]);
+    $contents = preg_replace('/<title>.*?<\/title>/i', '', $contents);
+  }
+  else {
+    list($title, $contents) = explode("\n", $contents, 2);
+  }
+
+  return $title;
+}

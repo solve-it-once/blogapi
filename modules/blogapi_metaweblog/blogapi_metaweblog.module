@@ -70,7 +70,7 @@ function blogapi_metaweblog_services_resources() {
           'help' => 'Returns information about a specific post.',
           'args' => array(
             array(
-              'blogid' => 'string',
+              'postid' => 'string',
               'username' => 'string',
               'password' => 'string',
             ),
@@ -122,4 +122,45 @@ function blogapi_metaweblog_services_resources() {
   );
 }
 
+/**
+ * Service callback for metaWeblog.newPost
+ */
+function blogapi_metaweblog_new_post($blogid, $username, $password, $content, $publish) {
 
+}
+
+
+/**
+ * Service allback for metaWeblog.editPost
+ */
+function blogapi_metaweblog_edit_post($blogid, $username, $password, $content, $publish) {
+
+}
+
+/**
+ * Service callback for metaWeblog.getPost
+ */
+function blogapi_metaweblog_get_post($postid, $username, $password) {
+
+}
+
+/**
+ * Service callback for metaWeblog.newMediaObject
+ */
+function blogapi_metaweblog_new_media_object($blogid, $username, $password, $file) {
+
+}
+
+/**
+ * Service callback for metaWeblog.getCategories
+ */
+function blogapi_metaweblog_get_categories($blogid, $username, $password) {
+
+}
+
+/**
+ * Service callback for metaWeblog.getRecentPosts
+ */
+function blogapi_metaweblog_get_recent_posts($blogid, $username, $password, $number_of_posts) {
+
+}

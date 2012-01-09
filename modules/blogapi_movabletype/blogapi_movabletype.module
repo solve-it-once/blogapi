@@ -119,31 +119,32 @@ function blogapi_movabletype_services_resources() {
 
 /**
  * Service callback for mt.publishPost
- *
- * @param $postid
- * @param $username
- * @param $password
- * @return boolean
  */
 function blogapi_movabletype_publish_post($postid, $username, $password) {
 
   $user = blogapi_validate_user($username, $password);
 
-  if (!is_numeric($user->uid)) {
-    // Problem logging in.
+  if (is_array($user)) {
+    // Problem logging in. More specific error is included in $user.
+    return services_error($user['message'], $user['error_code']);
   }
 
   $node = node_load($postid);
+  if (!$node) {
+    return services_error(t('Post @postid not found', array('@postid' => $postid)), 404);
+  }
 
   // Nothing needs to be done: the node is already published.
   if ($node->status == 1) {
-    return TRUE;
+    return;
   }
 
   if (!node_access('update', $node, $user) || !user_access('administer nodes')) {
     // User does not have permission to update the node.
+    return services_error(t('You are not authorized to update post @postid', array('@postid' => $postid)), 403);
   }
 
+  // If everything checks out, then go ahead and update the node.
   $node->status = 1;
   node_save($node);
 
@@ -152,12 +153,6 @@ function blogapi_movabletype_publish_post($postid, $username, $password) {
 
 /**
  * Service callback for mt.getRecentPostTitles
- *
- * @param $blogid
- * @param $username
- * @param $password
- * @param $number_of_posts
- * @return array
  */
 function blogapi_movabletype_get_recent_post_titles($blogid, $username, $password, $number_of_posts) {
 
@@ -165,11 +160,6 @@ function blogapi_movabletype_get_recent_post_titles($blogid, $username, $passwor
 
 /**
  * Service callback for mt.getCategoryList
- *
- * @param $blogid
- * @param $username
- * @param $password
- * @return array
  */
 function blogapi_movabletype_get_category_list($blogid, $username, $password) {
 
@@ -177,11 +167,6 @@ function blogapi_movabletype_get_category_list($blogid, $username, $password) {
 
 /**
  * Service callback for mt.getPostCategories
- *
- * @param $postid
- * @param $username
- * @param $password
- * @return array
  */
 function blogapi_movabletype_get_post_categories($postid, $username, $password) {
 
@@ -189,12 +174,6 @@ function blogapi_movabletype_get_post_categories($postid, $username, $password) 
 
 /**
  * Service callback for mt.setPostCategories
- *
- * @param $postid
- * @param $username
- * @param $password
- * @param $categories
- * @return boolean
  */
 function blogapi_movabletype_set_post_categories($postid, $username, $password, $categories) {
 
@@ -202,8 +181,6 @@ function blogapi_movabletype_set_post_categories($postid, $username, $password, 
 
 /**
  * Service callback for mt.supportedMethods
- *
- * @return array
  */
 function blogapi_movabletype_supported_methods() {
   return TRUE;
@@ -211,9 +188,18 @@ function blogapi_movabletype_supported_methods() {
 
 /**
  * Service callback for mt.supportedTextFilters
- *
- * @return array
  */
 function blogapi_movabletype_supported_text_filters() {
+  // NOTE: we're only using anonymous' formats because the MT spec
+  // does not allow for per-user formats.
+  $formats = filter_formats();
 
+  $filters = array();
+  foreach ($formats as $format) {
+    $filter['key'] = $format->format;
+    $filter['label'] = $format->name;
+    $filters[] = $filter;
+  }
+
+  return $filters;
 }

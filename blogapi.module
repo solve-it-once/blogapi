@@ -44,7 +44,7 @@ function blogapi_menu() {
 }
 
 /**
- * Implement hook_init().
+ * Implements hook_init().
  */
 function blogapi_init() {
   if (drupal_is_front_page()) {
@@ -53,7 +53,7 @@ function blogapi_init() {
         'rel' => 'EditURI',
         'type' => 'application/rsd+xml',
         'title' => t('RSD'),
-        'href' => url('blogapi/rsd', array('absolute' => TRUE))
+        'href' => url('blogapi/rsd', array('absolute' => TRUE)),
       ),
       TRUE
     );
@@ -66,7 +66,7 @@ function blogapi_init() {
 function blogapi_validate_user($username, $password) {
   global $user;
 
-  // Check the username and password
+  // Check the username and password.
   $tmpuid = user_authenticate($username, $password);
 
   if ($tmpuid !== FALSE) {
@@ -74,16 +74,24 @@ function blogapi_validate_user($username, $password) {
     $tmpuser = user_load_by_name($username);
 
     if (user_access('manage content with blogapi', $tmpuser)) {
-      // User has appropriate permissions
+      // User has appropriate permissions.
       $user = $tmpuser;
       return $user;
     }
     else {
-      return t('You do not have permission to edit this blog.');
+      $error_data = array(
+        'message' => t('You do not have permission to edit this blog'),
+        'error_code' => 405,
+      );
+      return $error_data;
     }
   }
   else {
-    return t('Invalid username or password');
+    $error_data = array(
+      'message' => t('Invalid username or password'),
+      'error_code' => 401,
+    );
+    return $error_data;
   }
 }
 
@@ -99,11 +107,14 @@ function blogapi_rsd() {
   $base = url('', array('absolute' => TRUE));
   $xmlrpc_apis = blogapi_get_info('xmlrpc');
   $default_xmlrpc_api = variable_get('blogapi_xmlrpc_default_provider', NULL);
-  $blogid = 1; # until we figure out how to handle multiple bloggers
+  // Until we figure out how to handle multiple bloggers, we'll just use a
+  // hardcoded blogid.
+  $blogid = 1;
 
   drupal_add_http_header('Content-Type', 'application/rsd+xml; charset=utf-8');
 
-  // The extra whitespace in this function is to preserve code alignment in the output.
+  // The extra whitespace in this function is to preserve code alignment in
+  // the output.
   print <<<__RSD__
 <?xml version="1.0"?>
 <rsd version="1.0" xmlns="http://archipelago.phrasewise.com/rsd">
@@ -114,12 +125,12 @@ function blogapi_rsd() {
     <apis>
 __RSD__;
 
-  foreach($xmlrpc_apis as $module => $info) {
+  foreach ($xmlrpc_apis as $module => $info) {
     $default = 'false';
     if ($module == $default_xmlrpc_api) {
       $default = 'true';
     }
-    $endpoint = $base_url . '/' . 'blogapi' . '/' . $info['type'];
+    $endpoint = "{$base_url}/blogapi/{$info['type']}";
     print "\n      <api name='{$info['name']}' preferred='{$default}' apiLink='{$endpoint}' blogID='{$blogid}' />";
   }
 
@@ -146,8 +157,8 @@ function blogapi_admin_settings_form() {
     '#collapsed' => FALSE,
   );
 
-  // Default provider for each API
-  foreach(blogapi_get_api_types() as $type) {
+  // Default provider for each API.
+  foreach (blogapi_get_api_types() as $type) {
     $providers = blogapi_get_info($type);
     $provider_options = array();
     foreach ($providers as $name => $provider) {
@@ -171,7 +182,7 @@ function blogapi_admin_settings_form() {
     '#collapsed' => FALSE,
   );
 
-  // Set up BlogAPI node types
+  // Set up BlogAPI node types.
   $node_types = array_map('check_plain', node_type_get_names());
   $defaults = isset($node_types['article']) ? array('article' => 'article'): array();
   $form['settings_node_types']['blogapi_node_types'] = array(
@@ -180,7 +191,7 @@ function blogapi_admin_settings_form() {
     '#required' => TRUE,
     '#default_value' => variable_get('blogapi_node_types', $defaults),
     '#options' => $node_types,
-    '#description' => t('Select the content types available to external blogging clients via Blog API. If supported, each enabled content type will be displayed as a separate "blog" by the external client.')
+    '#description' => t('Select the content types available to external blogging clients via Blog API. If supported, each enabled content type will be displayed as a separate "blog" by the external client.'),
   );
 
   $form['settings_files'] = array(
@@ -223,7 +234,9 @@ function blogapi_admin_settings_form() {
   );
 
   $form['settings_files']['upload_max_size'] = array(
-    '#value' => '<p>' . t('Your PHP settings limit the maximum file size per upload to %size.', array('%size' => format_size(file_upload_max_size()))) . '</p>'
+    '#prefix' => '<p>',
+    '#value' => t('Your PHP settings limit the maximum file size per upload to %size.', array('%size' => format_size(file_upload_max_size()))),
+    '#suffix' => '</p>',
   );
 
   $roles = user_roles(FALSE, 'manage content with blogapi');
@@ -330,7 +343,7 @@ function blogapi_default_services_endpoint() {
 
   $api_types = blogapi_get_api_types();
   foreach ($api_types as $type) {
-    $endpoint = new stdClass;
+    $endpoint = new stdClass();
     $endpoint->disabled = FALSE;
     $endpoint->api_version = 3;
     $endpoint->name = 'blogapi_' . $type;
@@ -339,7 +352,7 @@ function blogapi_default_services_endpoint() {
     $endpoint->authentication = array();
     $endpoint->server_settings = '';
 
-    // Get all resources for $type APIs
+    // Get all resources for $type APIs.
     $info = blogapi_get_info($type);
     $resources = array();
     foreach ($info as $module => $api_info) {
@@ -357,33 +370,87 @@ function blogapi_default_services_endpoint() {
 }
 
 /**
- * Prepare an error message to send to the client
+ * Helper function. Returns the latest few postings in a user's blog.
+ * $bodies FALSE returns a bandwidth-friendly list of titles
  */
-function blogapi_error($type, $message) {
-  $blogapi_error_function = 'blogapi_' . $type. '_error';
-  return $blogapi_error_function($message);
-}
+function blogapi_get_recent_posts($content_type, $user, $number_of_posts, $bodies = TRUE) {
 
-/**
- * Prepare an error message for returning to the XMLRPC caller.
- */
-function blogapi_xmlrpc_error($message) {
-  static $xmlrpcusererr;
+  $select = db_select('node', 'n')
+              ->addField('n', 'nid')
+              ->addField('n', 'title')
+              ->addField('n', 'created')
+              ->join('users', 'u', 'n.nid = u.uid')
+              ->addField('u', 'name')
+              ->condition('n.type', $content_type)
+              ->condition('n.uid', $user->uid)
+              ->range(0, $number_of_posts)
+              ->orderBy('n.created', 'DESC');
 
-  if (!is_array($message)) {
-    $message = array($message);
+  if ($bodies) {
+    $select->join('node_revision', 'r', 'r.nid = n.nid')
+      ->join('field_revision_body', 'frb', 'r.vid = frb.revision_id AND n.nid = frb.entity_id')
+      ->addField('frb.body_value')
+      ->groupBy('n.nid');
   }
 
-  $message = implode(' ', $message);
+  $blogs = $select->execute()->fetchAll(PDO::FETCH_ASSOC);
 
-  return xmlrpc_error($xmlrpcusererr + 1, strip_tags($message));
+  return $blogs;
 }
 
 /**
- * Prepare an error message for returning to the REST caller.
+ * Validate blog ID, which maps to a content type in Drupal.
  *
- * @todo: Write this function.
+ * Only content types configured to work with Blog API are supported.
+ *
+ * @param string $content_type
+ *   The machine name of the content type to validate
+ *
+ * @return TRUE|array
+ *   TRUE if the content type is configured for use with BlogAPI or
+ *   an error array if not.
  */
-function blogapi_rest_error($message) {
+function blogapi_validate_content_type($content_type) {
+  $types = _blogapi_get_node_types();
+  if (in_array($blogid, $types, TRUE)) {
+    return TRUE;
+  }
 
+  return blogapi_error(t("Blog API module is not configured to support the %type content type, or you don't have sufficient permissions to post this type of content.", array('%type' => $blogid)));
+}
+
+/**
+ * Helper function. Adds appropriate metadata to the XML-RPC return values.
+ */
+function blogapi_format_post_for_xmlrpc($node, $bodies = TRUE) {
+  $xmlrpcval = array(
+    'userid' => $node->name,
+    'dateCreated' => xmlrpc_date($node->created),
+    'title' => $node->title,
+    'postid' => $node->nid,
+    'link' => url('node/' . $node->nid, array('absolute' => TRUE)),
+    'permaLink' => url('node/' . $node->nid, array('absolute' => TRUE)),
+  );
+
+  if ($bodies) {
+    $body = $node->body[LANGUAGE_NONE][0]['value'];
+    $format = $node->body[LANGUAGE_NONE][0]['format'];
+    if ($node->comment == 1) {
+      $comment = 2;
+    }
+    elseif ($node->comment == 2) {
+      $comment = 1;
+    }
+    $xmlrpcval['content'] = "<title>$node->title</title>$body";
+    $xmlrpcval['description'] = $body;
+
+    // Add MT specific fields.
+    $xmlrpcval['mt_allow_comments'] = (int) $comment;
+    $xmlrpcval['mt_convert_breaks'] = $format;
+  }
+
+  // Allow altering the XML-RPC response.
+  drupal_alter('blogapi_xmlrpc_response', $xmlrpcval);
+
+  return $xmlrpcval;
 }
