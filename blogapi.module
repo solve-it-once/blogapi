@@ -414,7 +414,11 @@ function blogapi_validate_content_type($content_type) {
     return TRUE;
   }
 
-  return blogapi_error(t("Blog API module is not configured to support the %type content type, or you don't have sufficient permissions to post this type of content.", array('%type' => $blogid)));
+  $error_data = array(
+    'message' => t('BlogAPI is not configured to support the %type content type.', array('%type' => $content_type)),
+    'error_code' => 403,
+  );
+  return $error_data;
 }
 
 /**
