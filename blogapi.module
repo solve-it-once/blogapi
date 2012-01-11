@@ -370,31 +370,34 @@ function blogapi_default_services_endpoint() {
 }
 
 /**
- * Helper function. Returns the latest few postings in a user's blog.
- * $bodies FALSE returns a bandwidth-friendly list of titles
+ * Helper function. Returns the latest few nodes created by a given user.
  */
-function blogapi_get_recent_posts($content_type, $user, $number_of_posts, $bodies = TRUE) {
+function blogapi_get_recent_posts($content_type, $user, $number_of_posts = NULL) {
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', $content_type)
+    ->propertyCondition('uid', $user->uid)
+    ->propertyOrderBy('created', 'DESC');
 
-  $select = db_select('node', 'n')
-              ->addField('n', 'nid')
-              ->addField('n', 'title')
-              ->addField('n', 'created')
-              ->join('users', 'u', 'n.nid = u.uid')
-              ->addField('u', 'name')
-              ->condition('n.type', $content_type)
-              ->condition('n.uid', $user->uid)
-              ->range(0, $number_of_posts)
-              ->orderBy('n.created', 'DESC');
+  $result = $query->execute();
 
-  if ($bodies) {
-    $select->join('node_revision', 'r', 'r.nid = n.nid')
-      ->join('field_revision_body', 'frb', 'r.vid = frb.revision_id AND n.nid = frb.entity_id')
-      ->addField('frb.body_value')
-      ->groupBy('n.nid');
+  $blogs = array();
+  $blog_nids = array_keys($result);
+
+  if (!is_null($number_of_posts)) {
+    $i = 0;
+    $filtered_blog_nids = array();
+    foreach ($blog_nids as $blog_nid) {
+      $filtered_blog_nids[] = $blog_nid;
+      $i++;
+      if ($i == $number_of_posts) {
+        $blogs = $filtered_blog_nids;
+        break;
+      }
+    }
   }
 
-  $blogs = $select->execute()->fetchAll(PDO::FETCH_ASSOC);
-
+  $blogs = entity_load('node', $blogs);
   return $blogs;
 }
 
@@ -455,4 +458,63 @@ function blogapi_format_post_for_xmlrpc($node, $bodies = TRUE) {
   drupal_alter('blogapi_xmlrpc_response', $xmlrpcval);
 
   return $xmlrpcval;
+}
+
+/**
+ * Helper function. Find allowed taxonomy terms for a node type.
+ */
+function blogapi_validate_terms($node) {
+  // We do a lot of heavy lifting here since taxonomy module doesn't have a
+  // stand-alone validation function.
+  if (module_exists('taxonomy')) {
+    $found_terms = array();
+    if (!empty($node->taxonomy)) {
+      $term_list = array_unique($node->taxonomy);
+      $terms = taxonomy_term_load_multiple($term_list, array('type' => $node->type));
+      $found_terms = array();
+      $found_count = 0;
+      foreach ($terms as $term) {
+        $found_terms[$term->vid][$term->tid] = $term->tid;
+        $found_count++;
+      }
+      // If the counts don't match, some terms are invalid or not accessible to
+      // this user.
+      if (count($term_list) != $found_count) {
+        $error_data = array(
+          'message' => t('Invalid categories were submitted.'),
+          'error_code' => 405,
+        );
+        return $error_data;
+      }
+    }
+    // Look up all the vocabularies for this node type.
+    $vocabularies = taxonomy_vocabulary_load_multiple(array(), array('type' => $node->type));
+    // Check each vocabulary associated with this node type.
+    foreach ($vocabularies as $vocabulary) {
+      // Required vocabularies must have at least one term.
+      if ($vocabulary->required && empty($found_terms[$vocabulary->vid])) {
+        $error_data = array(
+          'message' => t('A category from the @vocabulary_name vocabulary is required.', array('@vocabulary_name' => $vocabulary->name)),
+          'error_code' => 403,
+        );
+        return $error_data;
+      }
+      // Vocabularies that don't allow multiple terms may have at most one.
+      if (!($vocabulary->multiple) && (isset($found_terms[$vocabulary->vid]) && count($found_terms[$vocabulary->vid]) > 1)) {
+        $error_data = array(
+          'message' => t('You may only choose one category from the @vocabulary_name vocabulary.', array('@vocabulary_name' => $vocabulary->name)),
+          'error_code' => 403,
+        );
+        return $error_data;
+      }
+    }
+  }
+  elseif (!empty($node->taxonomy)) {
+    $error_data = array(
+      'message' => t('Error saving categories. This feature is not available.'),
+      'error_code' => 405,
+    );
+    return $error_data;
+  }
+  return TRUE;
 }

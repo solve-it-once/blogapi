@@ -156,6 +156,31 @@ function blogapi_movabletype_publish_post($postid, $username, $password) {
  */
 function blogapi_movabletype_get_recent_post_titles($blogid, $username, $password, $number_of_posts) {
 
+  // Validate the user.
+  $user = blogapi_validate_user($username, $password);
+  if (is_array($user)) {
+    // Problem logging in. More specific error is included in $user.
+    return services_error($user['message'], $user['error_code']);
+  }
+
+  // Validate the content type.
+  $error = blogapi_validate_content_type($blogid);
+  if ($error !== TRUE) {
+    // Return an error if the content type is not configured for use
+    // with BlogAPI.
+    return services_error($error['message'], $error['error_code']);
+  }
+
+  // Get posts.
+  $blogs = blogapi_get_recent_posts($blogid, $user, $number_of_posts);
+
+  $posts = array();
+  foreach ($blogs as $blog) {
+    $posts[] = blogapi_format_post_for_xmlrpc($blog, FALSE);
+  }
+
+  return $posts;
+
 }
 
 /**
@@ -163,6 +188,34 @@ function blogapi_movabletype_get_recent_post_titles($blogid, $username, $passwor
  */
 function blogapi_movabletype_get_category_list($blogid, $username, $password) {
 
+  // Validate the user.
+  $user = blogapi_validate_user($username, $password);
+  if (is_array($user)) {
+    // Problem logging in. More specific error is included in $user.
+    return services_error($user['message'], $user['error_code']);
+  }
+
+  if (($error = blogapi_validate_content_type($blogid)) !== TRUE) {
+    // Return an error if not configured type.
+    return services_error($error['message'], $error['error_code']);
+  }
+
+  $vocabularies = module_invoke('taxonomy', 'get_vocabularies', $blogid, 'vid');
+  $categories = array();
+  if ($vocabularies) {
+    foreach ($vocabularies as $vocabulary) {
+      $terms = module_invoke('taxonomy', 'get_tree', $vocabulary->vid);
+      foreach ($terms as $term) {
+        $term_name = $term->name;
+        foreach (module_invoke('taxonomy', 'get_parents', $term->tid, 'tid') as $parent) {
+          $term_name = $parent->name . '/' . $term_name;
+        }
+        $categories[] = array('categoryName' => $term_name, 'categoryId' => $term->tid);
+      }
+    }
+  }
+
+  return $categories;
 }
 
 /**
@@ -170,6 +223,30 @@ function blogapi_movabletype_get_category_list($blogid, $username, $password) {
  */
 function blogapi_movabletype_get_post_categories($postid, $username, $password) {
 
+  // Validate the user.
+  $user = blogapi_validate_user($username, $password);
+  if (is_array($user)) {
+    // Problem logging in. More specific error is included in $user.
+    return services_error($user['message'], $user['error_code']);
+  }
+
+  $node = node_load($postid);
+  if (!node_access('view', $node, $user) || !user_access('administer nodes')) {
+    // User does not have permission to view the node.
+    return services_error(t('You are not authorized to view post @postid', array('@postid' => $postid)), 403);
+  }
+
+  $terms = module_invoke('taxonomy', 'node_get_terms', $node, 'tid');
+  $categories = array();
+  foreach ($terms as $term) {
+    $term_name = $term->name;
+    foreach (module_invoke('taxonomy', 'get_parents', $term->tid, 'tid') as $parent) {
+      $term_name = $parent->name . '/' . $term_name;
+    }
+    $categories[] = array('categoryName' => $term_name, 'categoryId' => $term->tid, 'isPrimary' => TRUE);
+  }
+
+  return $categories;
 }
 
 /**
@@ -177,13 +254,41 @@ function blogapi_movabletype_get_post_categories($postid, $username, $password) 
  */
 function blogapi_movabletype_set_post_categories($postid, $username, $password, $categories) {
 
+  // Validate the user.
+  $user = blogapi_validate_user($username, $password);
+  if (is_array($user)) {
+    // Problem logging in. More specific error is included in $user.
+    return services_error($user['message'], $user['error_code']);
+  }
+
+  $node = node_load($postid);
+  if (!node_access('update', $node, $user) || !user_access('administer nodes')) {
+    // User does not have permission to update the node.
+    return services_error(t('You are not authorized to view post @postid', array('@postid' => $postid)), 403);
+  }
+
+  $node->taxonomy = array();
+  foreach ($categories as $category) {
+    $node->taxonomy[] = $category['categoryId'];
+  }
+
+  $validated = blogapi_validate_terms($node);
+  if ($validated !== TRUE) {
+    return services_error($validated['message'], $validated['error_code']);
+  }
+
+  node_save($node);
+  return TRUE;
 }
 
 /**
  * Service callback for mt.supportedMethods
+ *
+ * @todo: Implement this function? system.getMethods returns the same thing,
+ *        so we may not need to bother with this.
  */
 function blogapi_movabletype_supported_methods() {
-  return TRUE;
+  return services_error(t('Not implemented'), 501);
 }
 
 /**
