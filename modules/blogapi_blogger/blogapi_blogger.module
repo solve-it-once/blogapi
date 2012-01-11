@@ -130,6 +130,12 @@ function blogapi_blogger_services_resources() {
  * Service callback for blogger.getUsersBlogs
  */
 function blogapi_blogger_get_users_blogs($appid, $username, $password) {
+  // Validate the user.
+  $user = blogapi_validate_user($username, $password);
+  if (is_array($user)) {
+    // Problem logging in. More specific error is included in $user.
+    return services_error($user['message'], $user['error_code']);
+  }
 
 }
 
@@ -137,6 +143,12 @@ function blogapi_blogger_get_users_blogs($appid, $username, $password) {
  * Service callback for blogger.getUserInfo
  */
 function blogapi_blogger_get_user_info($appid, $username, $password) {
+  // Validate the user.
+  $user = blogapi_validate_user($username, $password);
+  if (is_array($user)) {
+    // Problem logging in. More specific error is included in $user.
+    return services_error($user['message'], $user['error_code']);
+  }
 
 }
 
@@ -144,6 +156,12 @@ function blogapi_blogger_get_user_info($appid, $username, $password) {
  * Service callback for blogger.newPost
  */
 function blogapi_blogger_new_post($appid, $blogid, $username, $password, $content, $publish) {
+  // Validate the user.
+  $user = blogapi_validate_user($username, $password);
+  if (is_array($user)) {
+    // Problem logging in. More specific error is included in $user.
+    return services_error($user['message'], $user['error_code']);
+  }
 
 }
 
@@ -151,6 +169,12 @@ function blogapi_blogger_new_post($appid, $blogid, $username, $password, $conten
  * Service callback for blogger.editPost
  */
 function blogapi_blogger_edit_post($appid, $blogid, $username, $password, $content, $publish) {
+  // Validate the user.
+  $user = blogapi_validate_user($username, $password);
+  if (is_array($user)) {
+    // Problem logging in. More specific error is included in $user.
+    return services_error($user['message'], $user['error_code']);
+  }
 
 }
 
@@ -158,6 +182,12 @@ function blogapi_blogger_edit_post($appid, $blogid, $username, $password, $conte
  * Service callback for blogger.getPost
  */
 function blogapi_blogger_get_post($appid, $postid, $username, $password) {
+  // Validate the user.
+  $user = blogapi_validate_user($username, $password);
+  if (is_array($user)) {
+    // Problem logging in. More specific error is included in $user.
+    return services_error($user['message'], $user['error_code']);
+  }
 
 }
 
@@ -165,6 +195,12 @@ function blogapi_blogger_get_post($appid, $postid, $username, $password) {
  * Service callback for blogger.deletePost
  */
 function blogapi_blogger_delete_post($appid, $postid, $username, $password, $publish) {
+  // Validate the user.
+  $user = blogapi_validate_user($username, $password);
+  if (is_array($user)) {
+    // Problem logging in. More specific error is included in $user.
+    return services_error($user['message'], $user['error_code']);
+  }
 
 }
 
