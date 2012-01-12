@@ -156,6 +156,15 @@ function blogapi_blogger_get_user_info($appid, $username, $password) {
     return services_error($user['message'], $user['error_code']);
   }
 
+  $name = explode(' ', $user->realname ? $user->realname : $user->name, 2);
+  return array(
+    'userid' => $user->uid,
+    'lastname' => $name[1],
+    'firstname' => $name[0],
+    'nickname' => $user->name,
+    'email' => $user->mail,
+    'url' => url('user/' . $user->uid, array('absolute' => TRUE)),
+  );
 }
 
 /**
