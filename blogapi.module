@@ -412,7 +412,7 @@ function blogapi_get_recent_posts($content_type, $user, $number_of_posts = NULL)
  *   an error array if not.
  */
 function blogapi_validate_content_type($content_type) {
-  $types = _blogapi_get_node_types();
+  $types = blogapi_get_node_types();
   if (in_array($blogid, $types, TRUE)) {
     return TRUE;
   }
@@ -517,4 +517,13 @@ function blogapi_validate_terms($node) {
     return $error_data;
   }
   return TRUE;
+}
+
+/**
+ * Helper function. Get BlogAPI node types.
+ */
+function blogapi_get_node_types() {
+  $node_types = array_map('check_plain', node_type_get_names());
+  $defaults = isset($node_types['article']) ? array('article' => 'article'): array();
+  $node_types = variable_get('blogapi_node_types', $defaults);
 }

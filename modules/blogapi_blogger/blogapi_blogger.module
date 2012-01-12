@@ -16,7 +16,6 @@ function blogapi_blogger_blogapi_info() {
   );
 }
 
-
 /**
  * Implements hook_ctools_plugin_api().
  */
@@ -137,6 +136,13 @@ function blogapi_blogger_get_users_blogs($appid, $username, $password) {
     return services_error($user['message'], $user['error_code']);
   }
 
+  $types = blogapi_get_node_types();
+  $structs = array();
+  foreach ($types as $type) {
+    $structs[] = array('url' => url('user/' . $user->uid, array('absolute' => TRUE)), 'blogid' => $type, 'blogName' => $user->name . ": " . $type);
+  }
+
+  return $structs;
 }
 
 /**
