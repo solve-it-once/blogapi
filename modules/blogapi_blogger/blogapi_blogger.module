@@ -34,7 +34,7 @@ function blogapi_blogger_services_resources() {
     'blogger' => array(
       'actions' => array(
         'getUsersBlogs' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_blogger_get_users_blogs',
           'enabled' => 1,
           'help' => 'Returns a list of blogs to which an author has posting privileges.',
@@ -47,7 +47,7 @@ function blogapi_blogger_services_resources() {
           ),
         ),
         'getUserInfo' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_blogger_get_user_info',
           'enabled' => 1,
           'help' => 'Returns information about an author in the system.',
@@ -60,7 +60,7 @@ function blogapi_blogger_services_resources() {
           ),
         ),
         'newPost' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_blogger_new_post',
           'enabled' => 1,
           'help' => 'Creates a new post, and optionally publishes it.',
@@ -76,7 +76,7 @@ function blogapi_blogger_services_resources() {
           ),
         ),
         'editPost' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_blogger_edit_post',
           'enabled' => 1,
           'help' => 'Updates the information about an existing post.',
@@ -92,7 +92,7 @@ function blogapi_blogger_services_resources() {
           ),
         ),
         'getPost' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_blogger_get_post',
           'enabled' => 1,
           'help' => 'Returns information about a specific post.',
@@ -106,7 +106,7 @@ function blogapi_blogger_services_resources() {
           ),
         ),
         'deletePost' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_blogger_delete_post',
           'enabled' => 1,
           'help' => 'Deletes a post.',
@@ -121,7 +121,7 @@ function blogapi_blogger_services_resources() {
           ),
         ),
         'getRecentPosts' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_blogger_get_recent_posts',
           'enabled' => 1,
           'help' => 'Returns a list of the most recent posts in the system',

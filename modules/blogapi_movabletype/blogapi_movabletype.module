@@ -34,7 +34,7 @@ function blogapi_movabletype_services_resources() {
     'mt' => array(
       'actions' => array(
         'publishPost' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_movabletype_publish_post',
           'enabled' => 1,
           'help' => 'Publish (rebuild) all of the static files related to an entry from your blog. Equivalent to saving an entry in the system (but without the ping).',
@@ -47,7 +47,7 @@ function blogapi_movabletype_services_resources() {
           ),
         ),
         'getRecentPostTitles' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_movabletype_get_recent_post_titles',
           'enabled' => 1,
           'help' => 'Returns a bandwidth-friendly list of the most recent posts in the system.',
@@ -61,7 +61,7 @@ function blogapi_movabletype_services_resources() {
           ),
         ),
         'getCategoryList' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_movabletype_get_category_list',
           'enabled' => 1,
           'help' => 'Returns a list of all categories defined in the blog.',
@@ -74,7 +74,7 @@ function blogapi_movabletype_services_resources() {
           ),
         ),
         'getPostCategories' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_movabletype_get_post_categories',
           'enabled' => 1,
           'help' => 'Returns a list of all categories to which the post is assigned.',
@@ -87,7 +87,7 @@ function blogapi_movabletype_services_resources() {
           ),
         ),
         'setPostCategories' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_movabletype_set_post_categories',
           'enabled' => 1,
           'help' => 'Sets the categories for a post.',
@@ -101,13 +101,13 @@ function blogapi_movabletype_services_resources() {
           ),
         ),
         'supportedMethods' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_movabletype_supported_methods',
           'enabled' => 1,
           'help' => 'Retrieve information about the XML-RPC methods supported by the server.',
         ),
         'supportedTextFilters' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_movabletype_supported_text_filters',
           'enabled' => 1,
           'help' => 'Retrieve information about the text formatting plugins supported by the server.',

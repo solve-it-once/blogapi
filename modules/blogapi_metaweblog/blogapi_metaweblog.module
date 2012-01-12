@@ -35,7 +35,7 @@ function blogapi_metaweblog_services_resources() {
     'metaWeblog' => array(
       'actions' => array(
         'newPost' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_metaweblog_new_post',
           'enabled' => 1,
           'help' => 'Creates a new post, and optionally publishes it.',
@@ -50,7 +50,7 @@ function blogapi_metaweblog_services_resources() {
           ),
         ),
         'editPost' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_metaweblog_edit_post',
           'enabled' => 1,
           'help' => 'Updates information about an existing post.',
@@ -65,7 +65,7 @@ function blogapi_metaweblog_services_resources() {
           ),
         ),
         'getPost' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_metaweblog_get_post',
           'enabled' => 1,
           'help' => 'Returns information about a specific post.',
@@ -78,7 +78,7 @@ function blogapi_metaweblog_services_resources() {
           ),
         ),
         'newMediaObject' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_metaweblog_new_media_object',
           'enabled' => 1,
           'help' => 'Uploads a file to your webserver.',
@@ -92,7 +92,7 @@ function blogapi_metaweblog_services_resources() {
           ),
         ),
         'getCategories' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_metaweblog_get_categories',
           'enabled' => 1,
           'help' => 'Returns a list of all categories to which the post is assigned.',
@@ -105,7 +105,7 @@ function blogapi_metaweblog_services_resources() {
           ),
         ),
         'getRecentPosts' => array(
-          'access callback' => TRUE,
+          'access callback' => 'services_access_menu',
           'callback' => 'blogapi_metaweblog_get_recent_posts',
           'enabled' => 1,
           'help' => 'Returns a list of the most recent posts in the system.',
