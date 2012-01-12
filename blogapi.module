@@ -527,3 +527,33 @@ function blogapi_get_node_types() {
   $defaults = isset($node_types['article']) ? array('article' => 'article'): array();
   $node_types = variable_get('blogapi_node_types', $defaults);
 }
+
+/**
+ * Check that the user has permission to save the node with the chosen status.
+ */
+function blogapi_status_error_check($node, $original_status) {
+
+  $node = (object) $node;
+  $node_type_default = variable_get('node_options_' . $node->type, array('status', 'promote'));
+
+  // If we don't have the 'administer nodes' permission and the status is
+  // changing or for a new node the status is not the content type's default,
+  // then return an error.
+  if (!user_access('administer nodes') && (($node->status != $original_status) || (empty($node->nid) && $node->status != in_array('status', $node_type_default)))) {
+    if ($node->status) {
+      $error = array(
+        'message' => t('You do not have permission to publish this type of post. Please save it as a draft instead.'),
+        'error_code' => 403,
+      );
+      return $error;
+    }
+    else {
+      $error = array(
+        'message' => t('You do not have permission to save this post as a draft. Please publish it instead.'),
+        'error_code' => 403,
+      );
+      return $error;
+    }
+  }
+  return TRUE;
+}
