@@ -180,7 +180,6 @@ function blogapi_movabletype_get_recent_post_titles($blogid, $username, $passwor
   }
 
   return $posts;
-
 }
 
 /**

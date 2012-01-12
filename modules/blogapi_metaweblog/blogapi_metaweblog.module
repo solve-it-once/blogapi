@@ -13,6 +13,7 @@ function blogapi_metaweblog_blogapi_info() {
     'api_version' => 2,
     'type' => 'xmlrpc',
     'name' => 'MetaWeblog',
+    'provides_file_handling' => TRUE,
   );
 }
 
@@ -133,6 +134,57 @@ function blogapi_metaweblog_new_post($blogid, $username, $password, $content, $p
     return services_error($user['message'], $user['error_code']);
   }
 
+  if (!node_access('create', $edit['type'])) {
+    return services_error(t('You do not have permission to create this type of post.'), 403);
+  }
+
+  if (($error = blogapi_validate_content_type($blogid)) !== TRUE) {
+    // Return an error if not configured type.
+    return services_error($error['message'], $error['error_code']);
+  }
+
+  $edit = array();
+  $edit['type'] = $blogid;
+  // Get the node type defaults.
+  $node_type_default = variable_get('node_options_' . $edit['type'], array('status', 'promote'));
+  $edit['uid'] = $user->uid;
+  $edit['name'] = $user->name;
+  $edit['promote'] = in_array('promote', $node_type_default);
+  $edit['comment'] = variable_get('comment_' . $edit['type'], 2);
+  $edit['revision'] = in_array('revision', $node_type_default);
+  $edit['body'][LANGUAGE_NONE][0]['format'] = filter_default_format($user);
+  $edit['status'] = $publish;
+  $edit['title'] = $content['title'];
+  $edit['body'][LANGUAGE_NONE][0]['value'] = $content['description'];
+  _blogapi_movabletype_extra($edit, $content);
+
+  if (user_access('administer nodes') && !isset($edit['date'])) {
+    $edit['date'] = format_date(REQUEST_TIME, 'custom', 'Y-m-d H:i:s O');
+  }
+
+  module_invoke_all('blogapi_new_post', $edit);
+
+  $valid = blogapi_status_error_check($edit, $publish);
+  if ($valid !== TRUE) {
+    return services_error($valid['message'], $valid['error_code']);
+  }
+
+  node_validate($edit);
+  if ($errors = form_get_errors()) {
+    return services_error(implode("; ", $errors), 409);
+  }
+
+  $node = (object) node_submit($edit);
+  node_save($node);
+  if ($node->nid) {
+    watchdog('content', '@type: added %title using blog API.', array('@type' => $node->type, '%title' => $node->title), WATCHDOG_NOTICE, l(t('view'), "node/$node->nid"));
+    // blogger.newPost returns a string so we cast the nid to a string by
+    // putting it in double quotes.
+    return "$node->nid";
+  }
+
+  return services_error(t('Error storing post.'), 500);
+
 }
 
 
@@ -147,6 +199,48 @@ function blogapi_metaweblog_edit_post($blogid, $username, $password, $content, $
     return services_error($user['message'], $user['error_code']);
   }
 
+  $node = node_load($postid);
+  if (!$node) {
+    return services_error(t('Node not found'), 404);
+  }
+  // Let the teaser be re-generated.
+  unset($node->teaser);
+
+  if (!node_access('update', $node)) {
+    return services_error(t('You do not have permission to update this post.', 403));
+  }
+
+  // Save the original status for validation of permissions.
+  $original_status = $node->status;
+  $node->status = $publish;
+
+  $node->title = $content['title'];
+  $node->body[LANGUAGE_NONE][0]['value'] = $content['description'];
+  _blogapi_mt_extra($node, $content);
+
+  module_invoke_all('blogapi_node_edit', $node);
+
+  $valid = blogapi_status_error_check($node, $original_status);
+  if ($valid !== TRUE) {
+    return services_error($valid['message'], $valid['error_code']);
+  }
+
+  node_validate($node);
+  if ($errors = form_get_errors()) {
+    return services_error(implode("; ", $errors), 409);
+  }
+
+  if (user_access('administer nodes') && !isset($edit['date'])) {
+    $node->date = format_date($node->created, 'custom', 'Y-m-d H:i:s O');
+  }
+  $node = node_submit($node);
+  node_save($node);
+  if ($node->nid) {
+    watchdog('content', '@type: updated %title using Blog API.', array('@type' => $node->type, '%title' => $node->title), WATCHDOG_NOTICE, l(t('view'), "node/$node->nid"));
+    return TRUE;
+  }
+
+  return services_error(t('Error storing post.'), 500);
 }
 
 /**
@@ -160,6 +254,13 @@ function blogapi_metaweblog_get_post($postid, $username, $password) {
     return services_error($user['message'], $user['error_code']);
   }
 
+  $node = node_load($postid);
+  if (!node_access('view', $node, $user) || !user_access('administer nodes')) {
+    // User does not have permission to view the node.
+    return services_error(t('You are not authorized to view post @postid', array('@postid' => $postid)), 403);
+  }
+
+  return blogapi_format_post_for_xmlrpc($node, TRUE);
 }
 
 /**
@@ -173,6 +274,69 @@ function blogapi_metaweblog_new_media_object($blogid, $username, $password, $fil
     return services_error($user['message'], $user['error_code']);
   }
 
+  $usersize = 0;
+  $uploadsize = 0;
+
+  $roles = array_intersect(user_roles(FALSE, 'manage content with blog api'), $user->roles);
+
+  foreach ($roles as $rid => $name) {
+    $extensions .= ' ' . strtolower(variable_get("blogapi_extensions_$rid", variable_get('blogapi_extensions_default', 'jpg jpeg gif png txt doc xls pdf ppt pps odt ods odp')));
+    $usersize = max($usersize, variable_get("blogapi_usersize_$rid", variable_get('blogapi_usersize_default', 1)) * 1024 * 1024);
+    $uploadsize = max($uploadsize, variable_get("blogapi_uploadsize_$rid", variable_get('blogapi_uploadsize_default', 1)) * 1024 * 1024);
+  }
+
+  $filesize = strlen($file['bits']);
+
+  if ($filesize > $uploadsize) {
+    return services_error(t('It is not possible to upload the file, because it exceeded the maximum filesize of @maxsize.', array('@maxsize' => format_size($uploadsize))), 413);
+  }
+
+  if (_blogapi_space_used($user->uid) + $filesize > $usersize) {
+    return services_error(t('The file can not be attached to this post, because the disk quota of @quota has been reached.', array('@quota' => format_size($usersize))), 413);
+  }
+
+  // Only allow files with whitelisted extensions and convert remaining dots to
+  // underscores to prevent attacks via non-terminal executable extensions with
+  // files such as exploit.php.jpg.
+  $whitelist = array_unique(explode(' ', trim($extensions)));
+
+  $name = basename($file['name']);
+
+  if ($extension_position = strrpos($name, '.')) {
+    $filename = drupal_substr($name, 0, $extension_position);
+    $final_extension = drupal_substr($name, $extension_position + 1);
+
+    if (!in_array(strtolower($final_extension), $whitelist)) {
+      return services_error(t('It is not possible to upload the file, because it is only possible to upload files with the following extensions: @extensions', array('@extensions' => implode(' ', $whitelist))), 403);
+    }
+
+    $filename = str_replace('.', '_', $filename);
+    $filename .= '.' . $final_extension;
+  }
+
+  else {
+    $filename = $name;
+  }
+  $uri = file_build_uri($filename);
+  $data = $file['bits'];
+
+  if (!$data) {
+    return services_error(t('No file sent.'), 400);
+  }
+
+  if (!$file = file_unmanaged_save_data($data, $uri)) {
+    return services_error(t('Error storing file.'), 500);
+  }
+
+  $row = new stdClass();
+  $row->uid = $user->uid;
+  $row->uri = $file;
+  $row->filesize = $filesize;
+
+  drupal_write_record('blogapi_files', $row);
+
+  // Return the successful result.
+  return array('url' => file_create_url($file), 'struct');
 }
 
 /**
@@ -186,6 +350,27 @@ function blogapi_metaweblog_get_categories($blogid, $username, $password) {
     return services_error($user['message'], $user['error_code']);
   }
 
+  if (($error = blogapi_validate_content_type($blogid)) !== TRUE) {
+    // Return an error if not configured type.
+    return services_error($error['message'], $error['error_code']);
+  }
+
+  $vocabularies = module_invoke('taxonomy', 'get_vocabularies', $blogid, 'vid');
+  $categories = array();
+  if ($vocabularies) {
+    foreach ($vocabularies as $vocabulary) {
+      $terms = module_invoke('taxonomy', 'get_tree', $vocabulary->vid);
+      foreach ($terms as $term) {
+        $term_name = $term->name;
+        foreach (module_invoke('taxonomy', 'get_parents', $term->tid, 'tid') as $parent) {
+          $term_name = $parent->name . '/' . $term_name;
+        }
+        $categories[] = array('categoryName' => $term_name, 'categoryId' => $term->tid);
+      }
+    }
+  }
+
+  return $categories;
 }
 
 /**
@@ -199,4 +384,66 @@ function blogapi_metaweblog_get_recent_posts($blogid, $username, $password, $num
     return services_error($user['message'], $user['error_code']);
   }
 
+  // Validate the content type.
+  $error = blogapi_validate_content_type($blogid);
+  if ($error !== TRUE) {
+    // Return an error if the content type is not configured for use
+    // with BlogAPI.
+    return services_error($error['message'], $error['error_code']);
+  }
+
+  // Get posts.
+  $blogs = blogapi_get_recent_posts($blogid, $user, $number_of_posts);
+
+  $posts = array();
+  foreach ($blogs as $blog) {
+    $posts[] = blogapi_format_post_for_xmlrpc($blog, TRUE);
+  }
+
+  return $posts;
+}
+
+/**
+ * Handles extra information sent by clients according to MovableType's spec.
+ */
+function _blogapi_movabletype_extra(&$node, $struct) {
+  if (is_array($node)) {
+    $was_array = TRUE;
+    $node = (object) $node;
+  }
+
+  if (array_key_exists('mt_allow_comments', $struct)) {
+    switch ($struct['mt_allow_comments']) {
+      case 0:
+        $node->comment = COMMENT_NODE_HIDDEN;
+        break;
+      case 1:
+        $node->comment = COMMENT_NODE_OPEN;
+        break;
+      case 2:
+        $node->comment = COMMENT_NODE_CLOSED;
+        break;
+    }
+  }
+
+  // Merge the 3 body sections (description, mt_excerpt, mt_text_more)
+  // into one body.
+  if ($struct['mt_excerpt']) {
+    $node->body[LANGUAGE_NONE][0]['value'] = $struct['mt_excerpt'] . '<!--break-->' . $node->body[LANGUAGE_NONE][0]['value'];
+  }
+  if ($struct['mt_text_more']) {
+    $node->body[LANGUAGE_NONE][0]['value'] = $node->body[LANGUAGE_NONE][0]['value'] . '<!--extended-->' . $struct['mt_text_more'];
+  }
+
+  if ($struct['mt_convert_breaks']) {
+    $node->body[LANGUAGE_NONE][0]['format'] = $struct['mt_convert_breaks'];
+  }
+
+  if ($struct['dateCreated']) {
+    $node->date = format_date(mktime($struct['dateCreated']->hour, $struct['dateCreated']->minute, $struct['dateCreated']->second, $struct['dateCreated']->month, $struct['dateCreated']->day, $struct['dateCreated']->year), 'custom', 'Y-m-d H:i:s O');
+  }
+
+  if ($was_array) {
+    $node = (array) $node;
+  }
 }
