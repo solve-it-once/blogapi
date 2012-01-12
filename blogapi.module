@@ -576,3 +576,10 @@ function blogapi_status_error_check($node, $original_status) {
   }
   return TRUE;
 }
+
+/**
+ * Helper function. Return the amount of space used by a given user.
+ */
+function blogapi_space_used($uid) {
+  return db_query('SELECT SUM(filesize) FROM {blogapi_files} f WHERE f.uid = :uid', array(':uid' => $uid))->fetchField();
+}
