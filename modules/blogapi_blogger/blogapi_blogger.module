@@ -198,7 +198,7 @@ function blogapi_blogger_new_post($appid, $blogid, $username, $password, $conten
   $edit['revision'] = in_array('revision', $node_type_default);
   $edit['body'][LANGUAGE_NONE][0]['format'] = filter_default_format($user);
   $edit['status'] = $publish;
-  $edit['title'] = blogapi_blogger_title($content);
+  $edit['title'] = blogapi_blogger_extract_title($content);
   $edit['body'][LANGUAGE_NONE][0]['value'] = $content;
 
 
@@ -256,7 +256,7 @@ function blogapi_blogger_edit_post($appid, $postid, $username, $password, $conte
   $original_status = $node->status;
   $node->status = $publish;
 
-  $node->title = blogapi_blogger_title($content);
+  $node->title = blogapi_blogger_extract_title($content);
   $node->body[LANGUAGE_NONE][0]['value'] = $content;
 
   module_invoke_all('blogapi_node_edit', $node);
@@ -295,6 +295,13 @@ function blogapi_blogger_get_post($appid, $postid, $username, $password) {
     return services_error($user['message'], $user['error_code']);
   }
 
+  $node = node_load($postid);
+  if (!node_access('view', $node, $user) || !user_access('administer nodes')) {
+    // User does not have permission to view the node.
+    return services_error(t('You are not authorized to view post @postid', array('@postid' => $postid)), 403);
+  }
+
+  return blogapi_format_post_for_xmlrpc($node, TRUE);
 }
 
 /**
@@ -308,6 +315,8 @@ function blogapi_blogger_delete_post($appid, $postid, $username, $password, $pub
     return services_error($user['message'], $user['error_code']);
   }
 
+  node_delete($postid);
+  return TRUE;
 }
 
 /**
