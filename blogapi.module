@@ -67,32 +67,35 @@ function blogapi_validate_user($username, $password) {
   global $user;
 
   // Check the username and password.
-  $tmpuid = user_authenticate($username, $password);
+  $uid = user_authenticate($username, $password);
 
-  if ($tmpuid !== FALSE) {
-    // Username and password match up, now check permissions.
-    $tmpuser = user_load_by_name($username);
+  if (is_numeric($uid)) {
+    $user = user_load($uid);
+    if ($user->uid) {
+      user_login_finalize();
 
-    if (user_access('manage content with blogapi', $tmpuser)) {
-      // User has appropriate permissions.
-      $user = $tmpuser;
-      return $user;
-    }
-    else {
-      $error_data = array(
-        'message' => t('You do not have permission to edit this blog'),
-        'error_code' => 405,
-      );
-      return $error_data;
+      services_remove_user_data($user);
+
+      if (user_access('manage content with blogapi', $tmpuser)) {
+        // User has appropriate permissions.
+        $user = $tmpuser;
+        return $user;
+      }
+      else {
+        $error_data = array(
+          'message' => t('You do not have permission to edit this blog'),
+          'error_code' => 405,
+        );
+        return $error_data;
+      }
     }
   }
-  else {
-    $error_data = array(
-      'message' => t('Invalid username or password'),
-      'error_code' => 401,
-    );
-    return $error_data;
-  }
+  watchdog('user', 'Invalid login attempt for %username.', array('%username' => $username));
+  $error_data = array(
+    'message' => t('Invalid username or password'),
+    'error_code' => 401,
+  );
+  return $error_data;
 }
 
 /**
