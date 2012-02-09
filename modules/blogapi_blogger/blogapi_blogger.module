@@ -339,7 +339,7 @@ function blogapi_blogger_get_users_blogs($appid, $username, $password) {
   $types = blogapi_get_node_types();
   $structs = array();
   foreach ($types as $type) {
-    $structs[] = array('url' => url('user/' . $user->uid, array('absolute' => TRUE)), 'blogid' => $type, 'blogName' => $user->name . ": " . $type);
+    $structs[] = array('url' => url('user/' . $user->uid, array('absolute' => TRUE)), 'blogid' => $type, 'blogName' => $username . ": " . $type);
   }
 
   return $structs;

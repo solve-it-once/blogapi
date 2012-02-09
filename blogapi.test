@@ -1,0 +1,75 @@
+<?php
+
+/**
+ * @file
+ * Endpoint tests for BlogAPI Blogger
+ */
+class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
+  protected $profile = 'testing';
+  protected $privilegedUser;
+  protected $xmlrpcUrl;
+
+  /**
+   * Test info.
+   */
+  public static function getInfo() {
+    return array(
+      'name' => t('Blogger Endpoint Tests'),
+      'description' => t('Run tests for BlogAPI Blogger endpoints') ,
+      'group' => t('BlogAPI'),
+    );
+  }
+
+  /**
+   * Set up test.
+   */
+  public function setUp() {
+    parent::setUp(array(
+      'blogapi',
+      'blogapi_blogger',
+      'filter',
+      'services',
+      'xmlrpc_server',
+    ));
+
+    // Get the URL of the XML-RPC endpoint.
+    $this->xmlrpcUrl = url('blogapi/xmlrpc', array('absolute' => TRUE));
+
+    // Create a user with appropriate permissions.
+    $this->privilegedUser = $this->drupalCreateUser(array('manage content with blogapi'));
+    $this->drupalLogin($this->privilegedUser);
+  }
+
+  /**
+   * Test blogger.getUsersBlogs().
+   */
+  public function testGetUsersBlogs() {
+    // Get the username and password for use in XML-RPC calls.
+    $username = $this->privilegedUser->name;
+    $password = $this->privilegedUser->pass_raw;
+
+    // Test blog type retrieval before creating and configuring node types.
+    $blog_types = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.getUsersBlogs' => array('1234567890', $username, $password),
+    ));
+    $this->assertEqual(count($blog_types), 0, t('No blog types exist and none were returned'));
+
+    // Create a content type and re-test. No types should be returned
+    // because the content type is not configured for use with BlogAPI.
+    $type = $this->drupalCreateContentType();
+    $blog_types = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.getUsersBlogs' => array('1234567890', $username, $password),
+    ));
+    $this->assertEqual(count($blog_types), 0, t('No blog types are configured and none were returned'));
+
+    // Add the new content type to the blog list and make sure that it's
+    // returned correctly.
+    variable_set('blogapi_node_types', array($type->type));
+    $blog_types = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.getUsersBlogs' => array('1234567890', $username, $password),
+    ));
+    $this->assertEqual(count($blog_types), 1, t('One blog type is configured and one was returned'));
+    $this->assertEqual($blog_types[0]['blogid'], $type->type, t('The configured blog type is the one that was returned'));
+    $this->assertEqual($blog_types[0]['blogName'], $username . ': ' . $type->name, t('The blogName is returned correctly.'));
+  }
+}
