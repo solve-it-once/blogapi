@@ -37,6 +37,9 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
 
     // Create a user with appropriate permissions.
     $this->privilegedUser = $this->drupalCreateUser(array('manage content with blogapi'));
+    $this->privilegedUser->mail = 'test@example.com';
+    $this->privilegedUser->name = 'Test User';
+    user_save($this->privilegedUser);
     $this->drupalLogin($this->privilegedUser);
   }
 
@@ -71,5 +74,26 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
     $this->assertEqual(count($blog_types), 1, t('One blog type is configured and one was returned'));
     $this->assertEqual($blog_types[0]['blogid'], $type->type, t('The configured blog type is the one that was returned'));
     $this->assertEqual($blog_types[0]['blogName'], $username . ': ' . $type->name, t('The blogName is returned correctly.'));
+  }
+
+  /**
+   * Test blogger.getUserInfo().
+   */
+  public function testGetUserInfo() {
+    // Get the username and password for use in XML-RPC calls.
+    $username = $this->privilegedUser->name;
+    $password = $this->privilegedUser->pass_raw;
+
+    $user_info = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.getUserInfo' => array('1234567890', $username, $password),
+    ));
+
+    // Make sure all this data is correct.
+    $this->assertEqual($user_info['userid'], 2, t('Returned data has correct userid'));
+    $this->assertEqual($user_info['firstname'], 'Test', t('Returned data has correct username'));
+    $this->assertEqual($user_info['lastname'], 'User', t('Returned data has correct lastname'));
+    $this->assertEqual($user_info['nickname'], $username, t('Returned data has correct nickname'));
+    $this->assertEqual($user_info['email'], 'test@example.com', t('Returned data has correct email.'));
+    $this->assertEqual($user_info['url'], url('user/2', array('absolute' => TRUE)), t('Returned data has correct URL'));
   }
 }

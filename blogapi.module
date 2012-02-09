@@ -76,9 +76,8 @@ function blogapi_validate_user($username, $password) {
 
       services_remove_user_data($user);
 
-      if (user_access('manage content with blogapi', $tmpuser)) {
+      if (user_access('manage content with blogapi', $user)) {
         // User has appropriate permissions.
-        $user = $tmpuser;
         return $user;
       }
       else {

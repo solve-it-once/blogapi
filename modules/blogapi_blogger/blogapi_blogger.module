@@ -339,7 +339,7 @@ function blogapi_blogger_get_users_blogs($appid, $username, $password) {
   $types = blogapi_get_node_types();
   $structs = array();
   foreach ($types as $type) {
-    $structs[] = array('url' => url('user/' . $user->uid, array('absolute' => TRUE)), 'blogid' => $type, 'blogName' => $username . ": " . $type);
+    $structs[] = array('url' => url('user/' . $user->uid, array('absolute' => TRUE)), 'blogid' => $type, 'blogName' => $user->name . ": " . $type);
   }
 
   return $structs;
@@ -356,11 +356,20 @@ function blogapi_blogger_get_user_info($appid, $username, $password) {
     return services_error($user['message'], $user['error_code']);
   }
 
-  $name = explode(' ', $user->realname ? $user->realname : $user->name, 2);
+  // Try to guess the user's first and last name.
+  $name = explode(' ', isset($user->realname) ? $user->realname : $user->name, 2);
+
+  // If we can't figure out what their first and last name is, just use their
+  // username.
+  if (count($name) < 2) {
+    $name[0] = $user->name;
+    $name[1] = ' ';
+  }
+
   return array(
     'userid' => $user->uid,
-    'lastname' => $name[1],
     'firstname' => $name[0],
+    'lastname' => $name[1],
     'nickname' => $user->name,
     'email' => $user->mail,
     'url' => url('user/' . $user->uid, array('absolute' => TRUE)),
