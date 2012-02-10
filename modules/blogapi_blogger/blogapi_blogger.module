@@ -409,11 +409,7 @@ function blogapi_blogger_new_post($appid, $blogid, $username, $password, $conten
   $edit['status'] = $publish;
   $edit['title'] = blogapi_blogger_extract_title($content);
   $edit['body'][LANGUAGE_NONE][0]['value'] = $content;
-
-
-  if (user_access('administer nodes') && !isset($edit['date'])) {
-    $edit['date'] = format_date(REQUEST_TIME, 'custom', 'Y-m-d H:i:s O');
-  }
+  $edit['date'] = format_date(REQUEST_TIME, 'custom', 'Y-m-d H:i:s O');
 
   module_invoke_all('blogapi_new_post', $edit);
 
@@ -430,7 +426,7 @@ function blogapi_blogger_new_post($appid, $blogid, $username, $password, $conten
   $node = (object) node_submit($edit);
   node_save($node);
   if ($node->nid) {
-    watchdog('content', '@type: added %title using blog API.', array('@type' => $node->type, '%title' => $node->title), WATCHDOG_NOTICE, l(t('view'), "node/$node->nid"));
+    watchdog('content', '@type: added %title using BlogAPI.', array('@type' => $node->type, '%title' => $node->title), WATCHDOG_NOTICE, l(t('view'), "node/$node->nid"));
     // blogger.newPost returns a string so we cast the nid to a string by
     // putting it in double quotes.
     return "$node->nid";
