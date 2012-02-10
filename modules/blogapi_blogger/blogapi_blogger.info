@@ -4,3 +4,4 @@ package = Services
 core = 7.x
 dependencies[] = xmlrpc_server
 dependencies[] = blogapi
+files[] = blogapi_blogger.test

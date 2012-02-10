@@ -3,4 +3,3 @@ description = Allow users to post content using applications that support Blog A
 package = Services
 core = 7.x
 dependencies[] = services
-files[] = blogapi.test
