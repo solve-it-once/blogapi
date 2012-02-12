@@ -27,9 +27,10 @@ class BlogapiMovabletypeEndpointTestCase extends DrupalWebTestCase {
   public function setUp() {
     parent::setUp(array(
       'blogapi',
-      'blogapi_blogger',
+      'blogapi_movabletype',
       'filter',
       'services',
+      'taxonomy',
       'xmlrpc_server',
     ));
 
