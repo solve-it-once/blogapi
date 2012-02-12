@@ -1,0 +1,93 @@
+<?php
+
+/**
+ * @file
+ * Endpoint tests for BlogAPI Metaweblog
+ */
+class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
+  protected $profile = 'testing';
+  protected $privilegedUser;
+  protected $privilegedUser2;
+  protected $xmlrpcUrl;
+
+  /**
+   * Test info.
+   */
+  public static function getInfo() {
+    return array(
+      'name' => t('Metaweblog Endpoint Tests'),
+      'description' => t('Run tests for Metaweblog endpoints') ,
+      'group' => t('BlogAPI'),
+    );
+  }
+
+  /**
+   * Set up test.
+   */
+  public function setUp() {
+    parent::setUp(array(
+      'blogapi',
+      'blogapi_blogger',
+      'filter',
+      'services',
+      'xmlrpc_server',
+    ));
+
+    // Get the URL of the XML-RPC endpoint.
+    $this->xmlrpcUrl = url('blogapi/xmlrpc', array('absolute' => TRUE));
+
+    // Create a user with appropriate permissions.
+    $this->privilegedUser = $this->drupalCreateUser(array('manage content with blogapi'));
+    $this->privilegedUser->mail = 'test@example.com';
+    $this->privilegedUser->name = 'Test User';
+    user_save($this->privilegedUser);
+
+    // Create another user with more permissions.
+    $this->privilegedUser2 = $this->drupalCreateUser(array('manage content with blogapi', 'bypass node access'));
+    $this->privilegedUser2->mail = 'test@example.com';
+    $this->privilegedUser2->name = 'Test User2';
+    user_save($this->privilegedUser2);
+  }
+
+  /**
+   * Test metaWeblog.newPost().
+   */
+  public function testNewPost() {
+
+  }
+
+  /**
+   * Test metaWeblog.editPost().
+   */
+  public function testEditPost() {
+
+  }
+
+  /**
+   * Test metaWeblog.getPost().
+   */
+  public function testGetPost() {
+
+  }
+
+  /**
+   * Test metaWeblog.newMediaObject().
+   */
+  public function testNewMediaObject() {
+
+  }
+
+  /**
+   * Test metaWeblog.getCategories().
+   */
+  public function testGetCategories() {
+
+  }
+
+  /**
+   * test metaWeblog.getRecentPosts().
+   */
+  public function testGetRecentPosts() {
+
+  }
+}
