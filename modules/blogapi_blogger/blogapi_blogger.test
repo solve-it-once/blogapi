@@ -16,7 +16,7 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
   public static function getInfo() {
     return array(
       'name' => t('Blogger Endpoint Tests'),
-      'description' => t('Run tests for BlogAPI Blogger endpoints') ,
+      'description' => t('Run tests for Blogger endpoints') ,
       'group' => t('BlogAPI'),
     );
   }
@@ -148,5 +148,33 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
     $node = node_load($nid);
     $this->assertEqual($node->title, 'Test post', t('New node title is set correctly.'));
     $this->assertEqual($node->status, 1, t('New node is published'));
+  }
+
+  /**
+   * Test blogger.editPost().
+   */
+  public function testEditPost() {
+
+  }
+
+  /**
+   * Test blogger.getPost().
+   */
+  public function testGetPost() {
+
+  }
+
+  /**
+   * Test blogger.deletePost().
+   */
+  public function testDeletePost() {
+
+  }
+
+  /**
+   * Test blogger.getRecentPosts().
+   */
+  public function testGetRecentPosts() {
+
   }
 }
