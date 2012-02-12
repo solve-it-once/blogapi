@@ -27,9 +27,10 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
   public function setUp() {
     parent::setUp(array(
       'blogapi',
-      'blogapi_blogger',
+      'blogapi_metaweblog',
       'filter',
       'services',
+      'taxonomy',
       'xmlrpc_server',
     ));
 
