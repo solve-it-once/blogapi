@@ -337,6 +337,10 @@ function blogapi_blogger_get_users_blogs($appid, $username, $password) {
   }
 
   $types = blogapi_get_node_types();
+  if (empty($types)) {
+    return array();
+  }
+
   $structs = array();
   foreach ($types as $type) {
     $structs[] = array('url' => url('user/' . $user->uid, array('absolute' => TRUE)), 'blogid' => $type, 'blogName' => $user->name . ": " . $type);
@@ -387,7 +391,7 @@ function blogapi_blogger_new_post($appid, $blogid, $username, $password, $conten
     return services_error($user['message'], $user['error_code']);
   }
 
-  if (!node_access('create', $edit['type'])) {
+  if (!node_access('create', $blogid, $user)) {
     return services_error(t('You do not have permission to create this type of post.'), 403);
   }
 

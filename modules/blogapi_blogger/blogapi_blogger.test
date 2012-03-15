@@ -43,7 +43,7 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
     user_save($this->privilegedUser);
 
     // Create another user with more permissions.
-    $this->privilegedUser2 = $this->drupalCreateUser(array('manage content with blogapi', 'bypass node access'));
+    $this->privilegedUser2 = $this->drupalCreateUser(array('manage content with blogapi', 'bypass node access', 'administer nodes'));
     $this->privilegedUser2->mail = 'test@example.com';
     $this->privilegedUser2->name = 'Test User2';
     user_save($this->privilegedUser2);
@@ -127,7 +127,14 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
     // Try to create the node. This should fail because the user does not have
     // permission to create this content type.
     $nid = xmlrpc($this->xmlrpcUrl, array(
-      'blogger.newPost' => array('1234567890', $type->type, $username, $password, $content, TRUE),
+      'blogger.newPost' => array(
+        '1234567890',
+        $type->type,
+        $username,
+        $password,
+        $content,
+        TRUE
+      ),
     ));
     $this->assertEqual(xmlrpc_error_msg(), 'You do not have permission to create this type of post.',
       t('Node access is being respected.'));
@@ -145,7 +152,7 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
     ));
 
     // Load the node and validate the data.
-    $node = node_load($nid);
+    $node = node_load($nid[0]);
     $this->assertEqual($node->title, 'Test post', t('New node title is set correctly.'));
     $this->assertEqual($node->status, 1, t('New node is published'));
   }
