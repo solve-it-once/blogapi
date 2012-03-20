@@ -97,7 +97,7 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
     // Make sure all this data is correct.
     $this->assertEqual($user_info['userid'], 2, t('Returned data has correct userid'));
     $this->assertEqual($user_info['firstname'], 'Test', t('Returned data has correct username'));
-    $this->assertEqual($user_info['lastname'], 'User', t('Returned data has correct lastname'));
+    $this->assertEqual($user_info['lastname'], 'user', t('Returned data has correct lastname'));
     $this->assertEqual($user_info['nickname'], $username, t('Returned data has correct nickname'));
     $this->assertEqual($user_info['email'], 'test@example.com', t('Returned data has correct email.'));
     $this->assertEqual($user_info['url'], url('user/2', array('absolute' => TRUE)), t('Returned data has correct URL'));
