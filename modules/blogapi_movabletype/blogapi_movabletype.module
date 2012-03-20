@@ -42,7 +42,7 @@ function blogapi_movabletype_services_resources() {
             array(
               'name' => 'postid',
               'type' => 'int',
-              'description' => 'Post ID',
+              'description' => 'PostID',
               'source' => array('data' => 'postid'),
               'optional' => FALSE,
             ),

@@ -422,7 +422,7 @@ function blogapi_blogger_new_post($appid, $blogid, $username, $password, $conten
     return services_error($valid['message'], $valid['error_code']);
   }
 
-  // TODO: Fix this function call. I suspect that I'm not using it properly.
+  // @todo: Fix this function call. I suspect that I'm not using it properly.
   node_validate($edit);
   if ($errors = form_get_errors()) {
     return services_error(implode("; ", $errors), 409);
