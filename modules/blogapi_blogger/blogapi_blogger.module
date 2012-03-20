@@ -422,6 +422,7 @@ function blogapi_blogger_new_post($appid, $blogid, $username, $password, $conten
     return services_error($valid['message'], $valid['error_code']);
   }
 
+  // TODO: Fix this function call. I suspect that I'm not using it properly.
   node_validate($edit);
   if ($errors = form_get_errors()) {
     return services_error(implode("; ", $errors), 409);
@@ -457,7 +458,7 @@ function blogapi_blogger_edit_post($appid, $postid, $username, $password, $conte
   // Let the teaser be re-generated.
   unset($node->teaser);
 
-  if (!node_access('update', $node)) {
+  if (!node_access('update', $node, $user)) {
     return services_error(t('You do not have permission to update this post.', 403));
   }
 
