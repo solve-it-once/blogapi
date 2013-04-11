@@ -337,7 +337,7 @@ function blogapi_metaweblog_edit_post($postid, $username, $password, $content, $
   // Let the teaser be re-generated.
   unset($node->teaser);
 
-  if (!node_access('update', $node)) {
+  if (!node_access('update', $node, $user)) {
     return services_error(t('You do not have permission to update this post.', 403));
   }
 
@@ -356,10 +356,11 @@ function blogapi_metaweblog_edit_post($postid, $username, $password, $content, $
     return services_error($valid['message'], $valid['error_code']);
   }
 
-  node_validate($node);
-  if ($errors = form_get_errors()) {
-    return services_error(implode("; ", $errors), 409);
-  }
+  // @TODO: Add some validation here. node_validate() requires a second argument.
+  // node_validate($node);
+  // if ($errors = form_get_errors()) {
+  //   return services_error(implode("; ", $errors), 409);
+  // }
 
   if (user_access('administer nodes') && !isset($edit['date'])) {
     $node->date = format_date($node->created, 'custom', 'Y-m-d H:i:s O');

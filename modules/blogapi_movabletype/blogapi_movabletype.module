@@ -399,3 +399,47 @@ function blogapi_movabletype_supported_text_filters() {
 
   return $filters;
 }
+
+/**
+ * Handles extra information sent by clients according to MovableType's spec.
+ */
+function _blogapi_mt_extra(&$node, $struct) {
+  if (is_array($node)) {
+    $was_array = TRUE;
+    $node = (object)$node;
+  }
+
+  if (array_key_exists('mt_allow_comments', $struct)) {
+    switch ($struct['mt_allow_comments']) {
+      case 0:
+        $node->comment = COMMENT_NODE_HIDDEN;
+        break;
+      case 1:
+        $node->comment = COMMENT_NODE_OPEN;
+        break;
+      case 2:
+        $node->comment = COMMENT_NODE_CLOSED;
+        break;
+    }
+  }
+
+  // Merge the 3 body sections (description, mt_excerpt, mt_text_more) into one body.
+  if (isset($struct['mt_excerpt'])) {
+    $node->body[LANGUAGE_NONE][0]['value'] = $struct['mt_excerpt'] . '<!--break-->' . $node->body[LANGUAGE_NONE][0]['value'];
+  }
+  if (isset($struct['mt_text_more'])) {
+    $node->body[LANGUAGE_NONE][0]['value'] = $node->body[LANGUAGE_NONE][0]['value'] . '<!--extended-->' . $struct['mt_text_more'];
+  }
+
+  if (isset($struct['mt_convert_breaks'])) {
+    $node->body[LANGUAGE_NONE][0]['format'] = $struct['mt_convert_breaks'];
+  }
+
+  if (isset($struct['dateCreated'])) {
+    $node->date = format_date(mktime($struct['dateCreated']->hour, $struct['dateCreated']->minute, $struct['dateCreated']->second, $struct['dateCreated']->month, $struct['dateCreated']->day, $struct['dateCreated']->year), 'custom', 'Y-m-d H:i:s O');
+  }
+
+  if ($was_array) {
+    $node = (array)$node;
+  }
+}
