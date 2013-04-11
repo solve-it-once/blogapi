@@ -398,28 +398,25 @@ function blogapi_get_recent_posts($content_type, $user, $number_of_posts = NULL)
   $query->entityCondition('entity_type', 'node')
     ->entityCondition('bundle', $content_type)
     ->propertyCondition('uid', $user->uid)
-    ->propertyOrderBy('created', 'DESC');
+    ->propertyOrderBy('created', 'DESC')
+    ->addMetaData('account', user_load($user->uid))
+    ->range(0, $number_of_posts);
 
   $result = $query->execute();
 
-  $blogs = array();
-  $blog_nids = array_keys($result);
+  if (isset($result['node'])) {
+    $nodes = $result['node'];
 
-  if (!is_null($number_of_posts)) {
-    $i = 0;
-    $filtered_blog_nids = array();
-    foreach ($blog_nids as $blog_nid) {
-      $filtered_blog_nids[] = $blog_nid;
-      $i++;
-      if ($i == $number_of_posts) {
-        $blogs = $filtered_blog_nids;
-        break;
-      }
+    $blog_nids = array();
+    foreach ($nodes as $node) {
+      $blog_nids[] = $node->nid;
     }
+
+    $blogs = node_load_multiple($blog_nids);
+    return $blogs;
   }
 
-  $blogs = entity_load('node', $blogs);
-  return $blogs;
+  return array();
 }
 
 /**

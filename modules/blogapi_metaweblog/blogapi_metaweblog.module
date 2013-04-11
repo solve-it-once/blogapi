@@ -266,7 +266,7 @@ function blogapi_metaweblog_new_post($blogid, $username, $password, $content, $p
     return services_error($user['message'], $user['error_code']);
   }
 
-  if (!node_access('create', $edit['type'])) {
+  if (node_access('create', $blogid, $user)) {
     return services_error(t('You do not have permission to create this type of post.'), 403);
   }
 
@@ -316,7 +316,6 @@ function blogapi_metaweblog_new_post($blogid, $username, $password, $content, $p
   }
 
   return services_error(t('Error storing post.'), 500);
-
 }
 
 
