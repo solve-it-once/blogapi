@@ -196,6 +196,28 @@ function blogapi_admin_settings_form() {
     '#description' => t('Select the content types available to external blogging clients via Blog API. If supported, each enabled content type will be displayed as a separate "blog" by the external client.'),
   );
 
+  // $form['settings_formats'] = array(
+  //   '#type' => 'fieldset',
+  //   '#title' => t('Text filters'),
+  //   '#collapsible' => FALSE,
+  //   '#collapsed' => FALSE,
+  // );
+
+  // $formats = filter_formats();
+  // $format_list = array();
+  // foreach ($formats as $format) {
+  //   $format_list[$format->format] = $format->name;
+  // }
+
+  // $form['settings_formats']['blogapi_default_format'] = array(
+  //   '#type' => 'select',
+  //   '#title' => t('Choose the input format for remote posts'),
+  //   '#required' => TRUE,
+  //   '#default_value' => variable_get('blogapi_default_format', filter_fallback_format()),
+  //   '#options' => $format_list,
+  //   '#description' => t('The user posting must have permissions for this format, otherwise the standard (anonymous) format is used.')
+  // );
+
   $file_handling = FALSE;
   foreach (blogapi_get_api_types() as $type) {
     $providers = blogapi_get_info($type);
@@ -550,9 +572,9 @@ function blogapi_get_node_types() {
 /**
  * Check that the user has permission to save the node with the chosen status.
  */
-function blogapi_status_error_check($node, $original_status) {
-
+function blogapi_status_error_check($node) {
   $node = (object) $node;
+  $original_status = $node->status;
   $node_type_default = variable_get('node_options_' . $node->type, array('status', 'promote'));
 
   // If we don't have the 'administer nodes' permission and the status is
@@ -599,7 +621,7 @@ function blogapi_new_post($username, $password, $postdata) {
     return services_error(t('You do not have permission to create this type of post.'), 403);
   }
 
-  if (($error = blogapi_validate_content_type($blogid)) !== TRUE) {
+  if (($error = blogapi_validate_content_type($postdata['type'])) !== TRUE) {
     // Return an error if not configured type.
     return services_error($error['message'], $error['error_code']);
   }
@@ -626,7 +648,7 @@ function blogapi_new_post($username, $password, $postdata) {
 
   module_invoke_all('blogapi_new_post', $postdata);
 
-  $valid = blogapi_status_error_check($edit, $publish);
+  $valid = blogapi_status_error_check($postdata);
   if ($valid !== TRUE) {
     return services_error($valid['message'], $valid['error_code']);
   }

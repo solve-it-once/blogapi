@@ -335,7 +335,7 @@ function blogapi_metaweblog_edit_post($postid, $username, $password, $content, $
 
   module_invoke_all('blogapi_node_edit', $node);
 
-  $valid = blogapi_status_error_check($node, $original_status);
+  $valid = blogapi_status_error_check($node);
   if ($valid !== TRUE) {
     return services_error($valid['message'], $valid['error_code']);
   }
