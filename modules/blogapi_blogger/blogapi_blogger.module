@@ -384,60 +384,25 @@ function blogapi_blogger_get_user_info($appid, $username, $password) {
  * Service callback for blogger.newPost
  */
 function blogapi_blogger_new_post($appid, $blogid, $username, $password, $content, $publish) {
-  // Validate the user.
-  $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
+  $postdata = array(
+    'type' => $blogid,
+    'status' => $publish,
+    'title' => blogapi_blogger_extract_title($content),
+    'body' => $content,
+  );
+
+  $node_id = blogapi_new_post($username, $password, $postdata);
+
+  if (is_numeric($node_id)) {
+    // If this operation is successful, we're supposed to return a string from
+    // blogger.newPost.
+    return (string)$node_id;
   }
-
-  if (!node_access('create', $blogid, $user)) {
-    return services_error(t('You do not have permission to create this type of post.'), 403);
+  else {
+    // Otherwise, there is a problem, so just pass through what we got back from
+    // blogapi_new_post().
+    return $node_id;
   }
-
-  if (($error = blogapi_validate_content_type($blogid)) !== TRUE) {
-    // Return an error if not configured type.
-    return services_error($error['message'], $error['error_code']);
-  }
-
-  $edit = array();
-  $edit['type'] = $blogid;
-  // Get the node type defaults.
-  $node_type_default = variable_get('node_options_' . $edit['type'], array('status', 'promote'));
-  $edit['uid'] = $user->uid;
-  $edit['name'] = $user->name;
-  $edit['promote'] = in_array('promote', $node_type_default);
-  $edit['comment'] = variable_get('comment_' . $edit['type'], 2);
-  $edit['revision'] = in_array('revision', $node_type_default);
-  $edit['body'][LANGUAGE_NONE][0]['format'] = filter_default_format($user);
-  $edit['status'] = $publish;
-  $edit['title'] = blogapi_blogger_extract_title($content);
-  $edit['body'][LANGUAGE_NONE][0]['value'] = $content;
-  $edit['date'] = format_date(REQUEST_TIME, 'custom', 'Y-m-d H:i:s O');
-
-  module_invoke_all('blogapi_new_post', $edit);
-
-  $valid = blogapi_status_error_check($edit, $publish);
-  if ($valid !== TRUE) {
-    return services_error($valid['message'], $valid['error_code']);
-  }
-
-  // @todo: Fix this function call. I suspect that I'm not using it properly.
-  node_validate($edit);
-  if ($errors = form_get_errors()) {
-    return services_error(implode("; ", $errors), 409);
-  }
-
-  $node = (object) node_submit($edit);
-  node_save($node);
-  if ($node->nid) {
-    watchdog('content', '@type: added %title using BlogAPI.', array('@type' => $node->type, '%title' => $node->title), WATCHDOG_NOTICE, l(t('view'), "node/$node->nid"));
-    // blogger.newPost returns a string so we cast the nid to a string by
-    // putting it in double quotes.
-    return "$node->nid";
-  }
-
-  return services_error(t('Error storing post.'), 500);
 }
 
 /**
