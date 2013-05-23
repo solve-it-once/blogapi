@@ -281,10 +281,10 @@ function blogapi_metaweblog_new_post($blogid, $username, $password, $content, $p
   }
 
   $body = $postdata['body'];
-  if ($content['mt_excerpt']) {
+  if (isset($content['mt_excerpt'])) {
     $body = $content['mt_excerpt'] . '<!--break-->' . $body;
   }
-  if ($content['mt_text_more']) {
+  if (isset($content['mt_text_more'])) {
     $body = $body . '<!--extended-->' . $content['mt_text_more'];
   }
 
