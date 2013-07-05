@@ -617,6 +617,9 @@ function blogapi_new_post($username, $password, $postdata) {
     return services_error($user['message'], $user['error_code']);
   }
 
+  // @TODO remove this hardcoded content type after we'll decide how to set content types
+  $postdata['type'] = 'article';
+
   if (!node_access('create', $postdata['type'], $user)) {
     return services_error(t('You do not have permission to create this type of post.'), 403);
   }
@@ -626,41 +629,28 @@ function blogapi_new_post($username, $password, $postdata) {
     return services_error($error['message'], $error['error_code']);
   }
 
+  // @todo make more beautiful reassigning
   // Get the node type defaults.
   $node_type_default = variable_get('node_options_' . $postdata['type'], array('status', 'promote'));
+  $node = new stdClass();
+  $node->type = $postdata['type'];
+  $node->promote = in_array('promote', $node_type_default);
+  $node->uid = $user->uid;
+  $node->name = $user->name;
+  $node->title = $postdata['title'];
+  $node->language = LANGUAGE_NONE;
+  $node->body = array(
+    LANGUAGE_NONE => array(
+      array(
+        'formata' => filter_default_format($user),
+        'value' => $postdata['body'],
+      )
+    )
+  );
 
-  $postdata['promote'] = in_array('promote', $node_type_default);
-  $postdata['uid'] = $user->uid;
-  $postdata['name'] = $user->name;
-  if (!isset($postdata['comment'])) {
-    $postdata['comment'] = variable_get('comment_' . $postdata['type'], 2);
-  }
-  $postdata['revision'] = in_array('revision', $node_type_default);
-
-  if (user_access('administer nodes') && !isset($postdata['date'])) {
-    $postdata['date'] = format_date(REQUEST_TIME, 'custom', 'Y-m-d H:i:s O');
-  }
-
-  $content = $postdata['body'];
-  $postdata['body'] = array();
-  $postdata['body'][LANGUAGE_NONE][0]['format'] = filter_default_format($user);
-  $postdata['body'][LANGUAGE_NONE][0]['value'] = $content;
-
-  module_invoke_all('blogapi_new_post', $postdata);
-
-  $valid = blogapi_status_error_check($postdata);
-  if ($valid !== TRUE) {
-    return services_error($valid['message'], $valid['error_code']);
-  }
-
-  // @todo: Fix this function call. I suspect that I'm not using it properly.
-  node_validate($postdata);
-  if ($errors = form_get_errors()) {
-    return services_error(implode("; ", $errors), 409);
-  }
-
-  $node = (object) node_submit($postdata);
+  node_object_prepare($node);
   node_save($node);
+
   if ($node->nid) {
     watchdog('content', '@type: added %title using BlogAPI.', array('@type' => $node->type, '%title' => $node->title), WATCHDOG_NOTICE, l(t('view'), "node/$node->nid"));
     return $node->nid;
