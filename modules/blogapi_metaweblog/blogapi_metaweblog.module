@@ -390,6 +390,7 @@ function blogapi_metaweblog_new_media_object($blogid, $username, $password, $fil
     return services_error($user['message'], $user['error_code']);
   }
 
+  $extensions = '';
   $usersize = 0;
   $uploadsize = 0;
 
@@ -407,7 +408,7 @@ function blogapi_metaweblog_new_media_object($blogid, $username, $password, $fil
     return services_error(t('It is not possible to upload the file, because it exceeded the maximum filesize of @maxsize.', array('@maxsize' => format_size($uploadsize))), 413);
   }
 
-  if (_blogapi_space_used($user->uid) + $filesize > $usersize) {
+  if (blogapi_space_used($user->uid) + $filesize > $usersize) {
     return services_error(t('The file can not be attached to this post, because the disk quota of @quota has been reached.', array('@quota' => format_size($usersize))), 413);
   }
 
@@ -440,19 +441,18 @@ function blogapi_metaweblog_new_media_object($blogid, $username, $password, $fil
     return services_error(t('No file sent.'), 400);
   }
 
-  if (!$file = file_unmanaged_save_data($data, $uri)) {
+  if (!$file = file_save_data($data, $uri)) {
     return services_error(t('Error storing file.'), 500);
   }
 
-  $row = new stdClass();
-  $row->uid = $user->uid;
-  $row->uri = $file;
-  $row->filesize = $filesize;
+  // Store Drupal file ID in separate dfid column and unset fid to use own blogapi serial value
+  $file->dfid = $file->fid;
+  unset($file->fid);
 
-  drupal_write_record('blogapi_files', $row);
+  drupal_write_record('blogapi_files', $file);
 
   // Return the successful result.
-  return array('url' => file_create_url($file), 'struct');
+  return array('url' => file_create_url($file->uri), 'struct');
 }
 
 /**
