@@ -393,7 +393,7 @@ function blogapi_metaweblog_new_media_object($blogid, $username, $password, $fil
   $usersize = 0;
   $uploadsize = 0;
 
-  $roles = array_intersect(user_roles(FALSE, 'manage content with blog api'), $user->roles);
+  $roles = array_intersect(user_roles(FALSE, 'manage content with blogapi'), $user->roles);
 
   foreach ($roles as $rid => $name) {
     $extensions .= ' ' . strtolower(variable_get("blogapi_extensions_$rid", variable_get('blogapi_extensions_default', 'jpg jpeg gif png txt doc xls pdf ppt pps odt ods odp')));
