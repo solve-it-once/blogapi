@@ -213,13 +213,8 @@ function blogapi_movabletype_services_resources() {
  * Service callback for mt.publishPost
  */
 function blogapi_movabletype_publish_post($postid, $username, $password) {
-
+  // Validate the user.
   $user = blogapi_validate_user($username, $password);
-
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   $node = node_load($postid);
   if (!$node) {
@@ -247,13 +242,8 @@ function blogapi_movabletype_publish_post($postid, $username, $password) {
  * Service callback for mt.getRecentPostTitles
  */
 function blogapi_movabletype_get_recent_post_titles($blogid, $username, $password, $number_of_posts) {
-
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   // Validate the content type.
   $error = blogapi_validate_content_type($blogid);
@@ -278,13 +268,8 @@ function blogapi_movabletype_get_recent_post_titles($blogid, $username, $passwor
  * Service callback for mt.getCategoryList
  */
 function blogapi_movabletype_get_category_list($blogid, $username, $password) {
-
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   if (($error = blogapi_validate_content_type($blogid)) !== TRUE) {
     // Return an error if not configured type.
@@ -313,13 +298,8 @@ function blogapi_movabletype_get_category_list($blogid, $username, $password) {
  * Service callback for mt.getPostCategories
  */
 function blogapi_movabletype_get_post_categories($postid, $username, $password) {
-
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   $node = node_load($postid);
   if (!node_access('view', $node, $user) || !user_access('administer nodes')) {
@@ -344,13 +324,8 @@ function blogapi_movabletype_get_post_categories($postid, $username, $password) 
  * Service callback for mt.setPostCategories
  */
 function blogapi_movabletype_set_post_categories($postid, $username, $password, $categories) {
-
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   $node = node_load($postid);
   if (!node_access('update', $node, $user) || !user_access('administer nodes')) {

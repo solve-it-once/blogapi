@@ -309,10 +309,6 @@ function blogapi_metaweblog_new_post($blogid, $username, $password, $content, $p
 function blogapi_metaweblog_edit_post($postid, $username, $password, $content, $publish) {
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   $node = node_load($postid);
   if (!$node) {
@@ -365,10 +361,6 @@ function blogapi_metaweblog_edit_post($postid, $username, $password, $content, $
 function blogapi_metaweblog_get_post($postid, $username, $password) {
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   $node = node_load($postid);
   if (!node_access('view', $node, $user) || !user_access('administer nodes')) {
@@ -385,10 +377,6 @@ function blogapi_metaweblog_get_post($postid, $username, $password) {
 function blogapi_metaweblog_new_media_object($blogid, $username, $password, $file) {
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   $extensions = '';
   $usersize = 0;
@@ -461,10 +449,6 @@ function blogapi_metaweblog_new_media_object($blogid, $username, $password, $fil
 function blogapi_metaweblog_get_categories($blogid, $username, $password) {
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   if (($error = blogapi_validate_content_type($blogid)) !== TRUE) {
     // Return an error if not configured type.
@@ -495,10 +479,6 @@ function blogapi_metaweblog_get_categories($blogid, $username, $password) {
 function blogapi_metaweblog_get_recent_posts($blogid, $username, $password, $number_of_posts) {
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   // Validate the content type.
   // @todo remove hardcoded content type

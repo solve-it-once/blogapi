@@ -81,20 +81,14 @@ function blogapi_validate_user($username, $password) {
         return $user;
       }
       else {
-        $error_data = array(
-          'message' => t('You do not have permission to edit this blog'),
-          'error_code' => 405,
-        );
-        return $error_data;
+        return services_error(t('You do not have permission to edit this blog'), 405);
       }
     }
   }
+
   watchdog('user', 'Invalid login attempt for %username.', array('%username' => $username));
-  $error_data = array(
-    'message' => t('Invalid username or password'),
-    'error_code' => 401,
-  );
-  return $error_data;
+
+  return services_error(t('Invalid username or password'), 401);
 }
 
 /**
@@ -565,7 +559,7 @@ function blogapi_validate_terms($node) {
 function blogapi_get_node_types() {
   $node_types = array_map('check_plain', node_type_get_names());
   $defaults = isset($node_types['article']) ? array('article' => 'article'): array();
-  $node_types = variable_get('blogapi_node_types', $defaults);
+  $node_types = array_filter(variable_get('blogapi_node_types', $defaults));
   return $node_types;
 }
 
@@ -612,10 +606,6 @@ function blogapi_space_used($uid) {
 function blogapi_new_post($username, $password, $postdata) {
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   // @TODO remove this hardcoded content type after we'll decide how to set content types
   $postdata['type'] = 'article';

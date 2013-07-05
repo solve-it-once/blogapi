@@ -331,10 +331,6 @@ function blogapi_blogger_services_resources() {
 function blogapi_blogger_get_users_blogs($appid, $username, $password) {
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   $types = blogapi_get_node_types();
   if (empty($types)) {
@@ -355,10 +351,6 @@ function blogapi_blogger_get_users_blogs($appid, $username, $password) {
 function blogapi_blogger_get_user_info($appid, $username, $password) {
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   // Try to guess the user's first and last name.
   $name = explode(' ', isset($user->realname) ? $user->realname : $user->name, 2);
@@ -411,10 +403,6 @@ function blogapi_blogger_new_post($appid, $blogid, $username, $password, $conten
 function blogapi_blogger_edit_post($appid, $postid, $username, $password, $content, $publish) {
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   $node = node_load($postid);
   if (!$node) {
@@ -465,10 +453,6 @@ function blogapi_blogger_edit_post($appid, $postid, $username, $password, $conte
 function blogapi_blogger_get_post($appid, $postid, $username, $password) {
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   $node = node_load($postid);
   if (!node_access('view', $node, $user) || !user_access('administer nodes')) {
@@ -485,10 +469,6 @@ function blogapi_blogger_get_post($appid, $postid, $username, $password) {
 function blogapi_blogger_delete_post($appid, $postid, $username, $password, $publish) {
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   node_delete($postid);
   return TRUE;
@@ -500,10 +480,6 @@ function blogapi_blogger_delete_post($appid, $postid, $username, $password, $pub
 function blogapi_blogger_get_recent_posts($appkey, $blogid, $username, $password, $number_of_posts, $bodies = TRUE) {
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
-  if (is_array($user)) {
-    // Problem logging in. More specific error is included in $user.
-    return services_error($user['message'], $user['error_code']);
-  }
 
   // Validate the content type.
   $error = blogapi_validate_content_type($blogid);
