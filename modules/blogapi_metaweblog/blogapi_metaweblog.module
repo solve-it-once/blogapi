@@ -501,7 +501,8 @@ function blogapi_metaweblog_get_recent_posts($blogid, $username, $password, $num
   }
 
   // Validate the content type.
-  $error = blogapi_validate_content_type($blogid);
+  // @todo remove hardcoded content type
+  $error = blogapi_validate_content_type('article');
   if ($error !== TRUE) {
     // Return an error if the content type is not configured for use
     // with BlogAPI.
@@ -509,7 +510,8 @@ function blogapi_metaweblog_get_recent_posts($blogid, $username, $password, $num
   }
 
   // Get posts.
-  $blogs = blogapi_get_recent_posts($blogid, $user, $number_of_posts);
+  // @todo remove hardcoded content type
+  $blogs = blogapi_get_recent_posts('article', $user, $number_of_posts);
 
   $posts = array();
   foreach ($blogs as $blog) {
