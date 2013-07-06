@@ -310,46 +310,56 @@ function blogapi_metaweblog_edit_post($postid, $username, $password, $content, $
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
 
-  $node = node_load($postid);
-  if (!$node) {
-    return services_error(t('Node not found'), 404);
+  $old_node = node_load($postid);
+  $new_node = new stdClass;
+
+  if (!$old_node) {
+    return services_error(t('Node @nid not found', array('@nid' => $postid)), 404);
   }
   // Let the teaser be re-generated.
-  unset($node->teaser);
+  unset($old_node->teaser);
 
-  if (!node_access('update', $node, $user)) {
-    return services_error(t('You do not have permission to update this post.', 403));
+  if (!node_access('update', $old_node, $user)) {
+    return services_error(t('You do not have permission to update this post.'), 403);
   }
 
   // Save the original status for validation of permissions.
-  $original_status = $node->status;
-  $node->status = $publish;
 
-  $node->title = $content['title'];
-  $node->body[LANGUAGE_NONE][0]['value'] = $content['description'];
-  _blogapi_mt_extra($node, $content);
+  $new_node->status = $publish;
 
-  module_invoke_all('blogapi_node_edit', $node);
+  $new_node->title = $content['title'];
+  $new_node->body[LANGUAGE_NONE][0]['value'] = $content['description'];
 
-  blogapi_status_error_check($node);
-
-  // @TODO: Add some validation here. node_validate() requires a second argument.
-  // node_validate($node);
-  // if ($errors = form_get_errors()) {
-  //   return services_error(implode("; ", $errors), 409);
-  // }
-
-  if (user_access('administer nodes') && !isset($edit['date'])) {
-    $node->date = format_date($node->created, 'custom', 'Y-m-d H:i:s O');
+  if (empty($content['date']) && user_access('administer nodes')) {
+    $new_node->date = format_date($old_node->created, 'custom', 'Y-m-d H:i:s O');
   }
-  $node = node_submit($node);
-  node_save($node);
-  if ($node->nid) {
-    watchdog('content', '@type: updated %title using Blog API.', array('@type' => $node->type, '%title' => $node->title), WATCHDOG_NOTICE, l(t('view'), "node/$node->nid"));
+
+  _blogapi_mt_extra($new_node, $content);
+
+  module_invoke_all('blogapi_node_edit', $new_node);
+
+  blogapi_status_error_check($new_node);
+
+  // Load the required includes for drupal_execute
+  module_load_include('inc', 'node', 'node.pages');
+
+  $node_type = $old_node['type'];
+  node_object_prepare($new_node);
+
+  // Setup form_state.
+  $form_state = array();
+  $form_state['values'] = $new_node;
+  $form_state['values']['op'] = t('Save');
+  $form_state['node'] = $old_node;
+  drupal_form_submit($node_type . '_node_form', $form_state, $old_node);
+
+  if ($errors = form_get_errors()) {
+    return services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
+  }
+  else {
+    watchdog('content', '@type: updated %title using Blog API.', array('@type' => $old_node->type, '%title' => $new_node->title), WATCHDOG_NOTICE, l(t('view'), "node/$old_node->nid"));
     return TRUE;
   }
-
-  return services_error(t('Error storing post.'), 500);
 }
 
 /**

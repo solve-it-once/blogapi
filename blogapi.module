@@ -632,13 +632,22 @@ function blogapi_new_post($username, $password, $postdata) {
 
   module_invoke_all('blogapi_new_post', $node);
   blogapi_status_error_check($node);
-  node_object_prepare($node);
-  node_save($node);
 
-  if ($node->nid) {
-    watchdog('content', '@type: added %title using BlogAPI.', array('@type' => $node->type, '%title' => $node->title), WATCHDOG_NOTICE, l(t('view'), "node/$node->nid"));
+  // Load the required includes for drupal_execute
+  module_load_include('inc', 'node', 'node.pages');
+
+  // Setup form_state
+  $form_state = array();
+  $form_state['values'] = $node;
+  $form_state['values']['op'] = t('Save');
+
+  drupal_form_submit($node->type . '_node_form', $form_state, $node);
+
+  if ($errors = form_get_errors()) {
+    return services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
+  }
+  else {
+    watchdog('content', '@type: added %title using BlogAPI.', array('@type' => $node->type, '%title' => $node->title), WATCHDOG_NOTICE, l(t('view'), 'node/' . $form_state['nid']));
     return $node->nid;
   }
-
-  return services_error(t('Error storing post.'), 500);
 }
