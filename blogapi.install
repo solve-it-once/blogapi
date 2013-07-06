@@ -81,18 +81,3 @@ function blogapi_schema() {
 
   return $schema;
 }
-
-/**
- * Add dfid column with fid from {file_manage} to associate blogapi files with drupal's
- */
-function blogapi_update_7001() {
-  $spec = array(
-    'description' => 'The {file_manage}.fid of the file that is associated with the file.',
-    'type' => 'int',
-    'unsigned' => TRUE,
-    'not null' => TRUE,
-    'default' => 1,
-  );
-
-  db_add_field('blogapi_files', 'dfid', $spec);
-}

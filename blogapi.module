@@ -598,9 +598,6 @@ function blogapi_new_post($username, $password, $postdata) {
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
 
-  // @TODO remove this hardcoded content type after we'll decide how to set content types
-  $postdata['type'] = 'article';
-
   if (!node_access('create', $postdata['type'], $user)) {
     return services_error(t('You do not have permission to create this type of post.'), 403);
   }
@@ -629,6 +626,12 @@ function blogapi_new_post($username, $password, $postdata) {
     )
   );
 
+  if (empty($postdata['date']) && user_access('administer nodes')) {
+    $node->date = format_date(REQUEST_TIME, 'custom', 'Y-m-d H:i:s O');
+  }
+
+  module_invoke_all('blogapi_new_post', $node);
+  blogapi_status_error_check($node);
   node_object_prepare($node);
   node_save($node);
 
