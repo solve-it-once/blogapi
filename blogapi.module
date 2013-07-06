@@ -472,14 +472,16 @@ function blogapi_format_post_for_xmlrpc($node, $bodies = TRUE) {
   );
 
   if ($bodies) {
-    $body = $node->body[LANGUAGE_NONE][0]['value'];
-    $format = $node->body[LANGUAGE_NONE][0]['format'];
+    $body = !empty($node->body) ? $node->body[LANGUAGE_NONE][0]['value'] : '';
+    $format = !empty($node->body) ? $node->body[LANGUAGE_NONE][0]['format'] : 0;
+
     if ($node->comment == 1) {
       $comment = 2;
     }
     elseif ($node->comment == 2) {
       $comment = 1;
     }
+
     $xmlrpcval['content'] = "<title>$node->title</title>$body";
     $xmlrpcval['description'] = $body;
 
@@ -589,6 +591,64 @@ function blogapi_status_error_check($node) {
  */
 function blogapi_space_used($uid) {
   return db_query('SELECT SUM(filesize) FROM {blogapi_files} f WHERE f.uid = :uid', array(':uid' => $uid))->fetchField();
+}
+
+/**
+ * Service allback for metaWeblog.editPost
+ */
+function blogapi_edit_post($postid, $username, $password, $content, $publish) {
+  // Validate the user.
+  $user = blogapi_validate_user($username, $password);
+
+  $old_node = node_load($postid);
+  $new_node = new stdClass;
+
+  if (!$old_node) {
+    return services_error(t('Node @nid not found', array('@nid' => $postid)), 404);
+  }
+  // Let the teaser be re-generated.
+  unset($old_node->teaser);
+
+  if (!node_access('update', $old_node, $user)) {
+    return services_error(t('You do not have permission to update this post.'), 403);
+  }
+
+  // Save the original status for validation of permissions.
+
+  $new_node->status = $publish;
+  $new_node->type = $old_node->type;
+  $new_node->title = $content['title'];
+  $new_node->body[LANGUAGE_NONE][0]['value'] = $content['description'];
+
+  if (empty($content['date']) && user_access('administer nodes')) {
+    $new_node->date = format_date($old_node->created, 'custom', 'Y-m-d H:i:s O');
+  }
+
+  _blogapi_mt_extra($new_node, $content);
+
+  module_invoke_all('blogapi_node_edit', $new_node);
+
+  blogapi_status_error_check($new_node);
+
+  // Load the required includes for drupal_execute
+  module_load_include('inc', 'node', 'node.pages');
+
+  node_object_prepare($old_node);
+
+  // Setup form_state.
+  $form_state = array();
+  $form_state['values'] = (array) $new_node;
+  $form_state['values']['op'] = t('Save');
+  $form_state['node'] = $old_node;
+  drupal_form_submit($old_node->type . '_node_form', $form_state, $old_node);
+
+  if ($errors = form_get_errors()) {
+    return services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
+  }
+  else {
+    watchdog('content', '@type: updated %title using Blog API.', array('@type' => $old_node->type, '%title' => $new_node->title), WATCHDOG_NOTICE, l(t('view'), "node/$old_node->nid"));
+    return TRUE;
+  }
 }
 
 /**
