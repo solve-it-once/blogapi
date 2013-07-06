@@ -576,21 +576,12 @@ function blogapi_status_error_check($node) {
   // then return an error.
   if (!user_access('administer nodes') && (($node->status != $original_status) || (empty($node->nid) && $node->status != in_array('status', $node_type_default)))) {
     if ($node->status) {
-      $error = array(
-        'message' => t('You do not have permission to publish this type of post. Please save it as a draft instead.'),
-        'error_code' => 403,
-      );
-      return $error;
+      return services_error(t('You do not have permission to publish this type of post. Please save it as a draft instead.'), 403);
     }
     else {
-      $error = array(
-        'message' => t('You do not have permission to save this post as a draft. Please publish it instead.'),
-        'error_code' => 403,
-      );
-      return $error;
+      return services_error(t('You do not have permission to save this post as a draft. Please publish it instead.'), 403);
     }
   }
-  return TRUE;
 }
 
 /**
