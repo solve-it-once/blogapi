@@ -399,27 +399,26 @@ function blogapi_metaweblog_new_media_object($blogid, $username, $password, $fil
 
 /**
  * Service callback for metaWeblog.getCategories
+ * @TODO somplify this callback
  */
 function blogapi_metaweblog_get_categories($blogid, $username, $password) {
   // Validate the user.
-  $user = blogapi_validate_user($username, $password);
+  blogapi_validate_user($username, $password);
 
   if (($error = blogapi_validate_content_type($blogid)) !== TRUE) {
     // Return an error if not configured type.
     return services_error($error['message'], $error['error_code']);
   }
 
-  $vocabularies = module_invoke('taxonomy', 'get_vocabularies', $blogid, 'vid');
   $categories = array();
-  if ($vocabularies) {
-    foreach ($vocabularies as $vocabulary) {
-      $terms = module_invoke('taxonomy', 'get_tree', $vocabulary->vid);
+  $vocabularies = blogapi_metaweblog_get_vocabularies_per_content_type($blogid);
+
+  if (!empty($vocabularies)) {
+    foreach ($vocabularies as $vocabulary_machine_name) {
+      $vocabulary = taxonomy_vocabulary_machine_name_load($vocabulary_machine_name);
+      $terms = taxonomy_get_tree($vocabulary->vid);
       foreach ($terms as $term) {
-        $term_name = $term->name;
-        foreach (module_invoke('taxonomy', 'get_parents', $term->tid, 'tid') as $parent) {
-          $term_name = $parent->name . '/' . $term_name;
-        }
-        $categories[] = array('categoryName' => $term_name, 'categoryId' => $term->tid);
+        $categories[] = array('categoryName' => $term->name, 'categoryId' => $term->tid);
       }
     }
   }
