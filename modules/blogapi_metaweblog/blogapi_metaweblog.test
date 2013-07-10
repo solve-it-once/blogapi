@@ -153,7 +153,26 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
    * Test metaWeblog.newMediaObject().
    */
   public function testNewMediaObject() {
+    $this->testfiles = $this->drupalGetTestFiles('image');
+    $this->testfile = current($this->testfiles);
 
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.newMediaObject' => array(
+        $this->blogID,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+        array(
+          'name' => $this->testfile->filename,
+          'type' => mime_content_type(file_create_url($this->testfile->uri)),
+          'bits' => base64_encode(file_get_contents(file_create_url($this->testfile->uri))),
+        ),
+      )
+    ));
+    $this->assert('pass', '' . xmlrpc_error_msg());
+
+    debug(json_encode($this->testfile));
+    debug(json_encode($result));
+    $this->assertTrue(is_file($result['url']), 'New file saved to disk.', 'FileResource: Create');
   }
 
   /**
