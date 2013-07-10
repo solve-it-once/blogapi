@@ -6,7 +6,9 @@
  */
 class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
   protected $profile = 'testing';
+  protected $blogID = 'article';
   protected $privilegedUser;
+  protected $testfile;
   protected $privilegedUser2;
   protected $xmlrpcUrl;
 
@@ -44,10 +46,12 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
     user_save($this->privilegedUser);
 
     // Create another user with more permissions.
-    $this->privilegedUser2 = $this->drupalCreateUser(array('manage content with blogapi', 'bypass node access'));
+    $this->privilegedUser2 = $this->drupalCreateUser(array('administer nodes', 'manage content with blogapi', 'bypass node access'));
     $this->privilegedUser2->mail = 'test@example.com';
     $this->privilegedUser2->name = 'Test user2';
     user_save($this->privilegedUser2);
+
+    $this->drupalCreateContentType(array('type' => 'article'));
   }
 
   /**
