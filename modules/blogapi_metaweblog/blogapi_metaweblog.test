@@ -117,7 +117,36 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
    * Test metaWeblog.getPost().
    */
   public function testGetPost() {
+    $post_title = user_password(20);
+    $post_body = user_password(20);
+    $nid = $this->createPostViaxmlrpc($post_title, $post_body);
 
+    $node = node_load($nid);
+
+    $post = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.getPost' => array(
+        $nid,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+      )
+    ));
+
+    $xmlrpcval = array(
+      'userid' => $node->name,
+      'dateCreated' => xmlrpc_date($node->created),
+      'title' => $node->title,
+      'postid' => $node->nid,
+      'link' => url('node/' . $node->nid, array('absolute' => TRUE)),
+      'permaLink' => url('node/' . $node->nid, array('absolute' => TRUE)),
+    );
+
+    $this->assertTrue($post['userid'] == $this->privilegedUser2->name, 'Author name is correct');
+    $this->assertTrue($post['dateCreated'] == xmlrpc_date($node->created), 'Created date is correct');
+    $this->assertTrue($post['title'] == $node->title, 'Post title is correct');
+    $this->assertTrue($post['postid'] == $node->nid, 'Post ID is correct');
+    $node_body = !empty($node->body[LANGUAGE_NONE][0]['value']) ? $node->body[LANGUAGE_NONE][0]['value'] : '';
+    $this->assertTrue($post['content'] == '<title>' . $node->title . '</title>' . $node_body, 'Post content is correct');
+    $this->assertTrue($post['link'] == url('node/' . $node->nid, array('absolute' => TRUE)), 'Post link is correct');
   }
 
   /**
