@@ -401,7 +401,7 @@ function blogapi_blogger_new_post($appid, $blogid, $username, $password, $conten
  * Service callback for blogger.editPost
  */
 function blogapi_blogger_edit_post($appid, $postid, $username, $password, $content, $publish) {
-  blogapi_edit_post($postid, $username, $password, $content, $publish);
+  return blogapi_edit_post($postid, $username, $password, $content, $publish);
 }
 
 /**

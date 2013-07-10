@@ -306,7 +306,7 @@ function blogapi_metaweblog_new_post($blogid, $username, $password, $content, $p
  * Service allback for metaWeblog.editPost
  */
 function blogapi_metaweblog_edit_post($postid, $username, $password, $content, $publish) {
-  blogapi_edit_post($postid, $username, $password, $content, $publish);
+  return blogapi_edit_post($postid, $username, $password, $content, $publish);
 }
 
 /**

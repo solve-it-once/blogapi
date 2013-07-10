@@ -452,7 +452,7 @@ function blogapi_validate_content_type($content_type) {
   }
 
   $error_data = array(
-    'message' => t('BlogAPI is not configured to support the %type content type.', array('%type' => $content_type)),
+    'message' => t('BlogAPI is not configured to support the @type content type.', array('@type' => $content_type)),
     'error_code' => 403,
   );
   return $error_data;
@@ -559,9 +559,7 @@ function blogapi_validate_terms($node) {
  * Helper function. Get BlogAPI node types.
  */
 function blogapi_get_node_types() {
-  $node_types = array_map('check_plain', node_type_get_names());
-  $defaults = isset($node_types['article']) ? array('article' => 'article'): array();
-  $node_types = array_filter(variable_get('blogapi_node_types', $defaults));
+  $node_types = array_filter(variable_get('blogapi_node_types', array('article', 'article')));
   return $node_types;
 }
 
@@ -614,7 +612,6 @@ function blogapi_edit_post($postid, $username, $password, $content, $publish) {
   }
 
   // Save the original status for validation of permissions.
-
   $new_node->status = $publish;
   $new_node->type = $old_node->type;
   $new_node->title = $content['title'];
@@ -640,6 +637,7 @@ function blogapi_edit_post($postid, $username, $password, $content, $publish) {
   $form_state['values'] = (array) $new_node;
   $form_state['values']['op'] = t('Save');
   $form_state['node'] = $old_node;
+
   drupal_form_submit($old_node->type . '_node_form', $form_state, $old_node);
 
   if ($errors = form_get_errors()) {
@@ -674,6 +672,7 @@ function blogapi_new_post($username, $password, $postdata) {
   $node->type = $postdata['type'];
   $node->promote = in_array('promote', $node_type_default);
   $node->uid = $user->uid;
+  $node->status = $postdata['status'];
   $node->name = $user->name;
   $node->title = $postdata['title'];
   $node->language = LANGUAGE_NONE;
@@ -698,7 +697,7 @@ function blogapi_new_post($username, $password, $postdata) {
 
   // Setup form_state
   $form_state = array();
-  $form_state['values'] = $node;
+  $form_state['values'] = (array) $node;
   $form_state['values']['op'] = t('Save');
 
   drupal_form_submit($node->type . '_node_form', $form_state, $node);
@@ -708,6 +707,6 @@ function blogapi_new_post($username, $password, $postdata) {
   }
   else {
     watchdog('content', '@type: added %title using BlogAPI.', array('@type' => $node->type, '%title' => $node->title), WATCHDOG_NOTICE, l(t('view'), 'node/' . $form_state['nid']));
-    return $node->nid;
+    return $form_state['nid'];
   }
 }
