@@ -58,7 +58,22 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
    * Test metaWeblog.newPost().
    */
   public function testNewPost() {
+    $post_title = user_password(20);
+    $post_body = user_password(20);
+    $nid = $this->createPostViaxmlrpc($post_title, $post_body);
 
+
+    $this->assertTrue(!empty($nid), 'Node ID was returned');
+
+    $node = node_load($nid);
+
+    $this->assertTrue(is_object($node), 'Node was created');
+
+    $this->assertTrue($node->title == $post_title, 'Title is the same');
+
+    $this->assertTrue(!empty($node->body[LANGUAGE_NONE][0]['value']) && $node->body[LANGUAGE_NONE][0]['value'] == $post_body, 'Body is the same');
+
+    $this->assertTrue($node->status == 1, 'Node is published');
   }
 
   /**
