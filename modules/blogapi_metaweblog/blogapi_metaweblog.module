@@ -452,3 +452,20 @@ function blogapi_metaweblog_get_recent_posts($blogid, $username, $password, $num
 
   return $posts;
 }
+
+function blogapi_metaweblog_get_vocabularies_per_content_type($type) {
+  $vocabularies = array();
+  foreach (field_info_fields() as $field) {
+    if ($field['type'] == 'taxonomy_term_reference' && is_array($field['bundles']['node'])) {
+      foreach ($field['bundles']['node'] as $content_type) {
+        if ($content_type == $type) {
+          foreach ($field['settings']['allowed_values'] as $value) {
+            $vocabularies[] = $value['vocabulary'];
+          }
+        }
+      }
+    }
+  }
+
+  return $vocabularies;
+}
