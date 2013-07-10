@@ -179,7 +179,81 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
    * Test metaWeblog.getCategories().
    */
   public function testGetCategories() {
+    $this->admin_user = $this->drupalCreateUser(array('administer taxonomy', 'bypass node access', 'administer services'));
+    $this->drupalLogin($this->admin_user);
+    $this->vocabulary = $this->createVocabulary();
 
+    $field = array(
+      'field_name' => 'taxonomy_' . $this->vocabulary->machine_name,
+      'type' => 'taxonomy_term_reference',
+      'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+      'settings' => array(
+        'allowed_values' => array(
+          array(
+            'vocabulary' => $this->vocabulary->machine_name,
+            'parent' => 0,
+          ),
+        ),
+      ),
+    );
+
+    field_create_field($field);
+
+    $this->instance = array(
+      'field_name' => 'taxonomy_' . $this->vocabulary->machine_name,
+      'bundle' => 'article',
+      'entity_type' => 'node',
+      'widget' => array(
+        'type' => 'options_select',
+      ),
+      'display' => array(
+        'default' => array(
+          'type' => 'taxonomy_term_reference_link',
+        ),
+      ),
+    );
+
+    field_create_instance($this->instance);
+
+    $terms = array();
+
+    for ($i = 0; $i < 5; $i++) {
+      $terms[] = $this->createTerm($this->vocabulary);
+    }
+
+    $testNode = array(
+      'type' => 'article',
+      $field['field_name'] => array(
+        LANGUAGE_NONE => array(
+          array(
+            'tid' => $terms[0]->tid
+          )
+        )
+      )
+    );
+
+    $node = $this->drupalCreateNode($testNode);
+
+    $results = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.getCategories' => array(
+        $this->blogID,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+      )
+    ));
+
+    $this->assertTrue(is_array($results) && count($results) == count($terms), 'Service returned correct terms number');
+
+    $success = TRUE;
+
+    foreach ($results as $category) {
+      $term = taxonomy_term_load($category['categoryId']);
+      if (empty($term) || $term->name != $category['categoryName']) {
+        $success = FALSE;
+      }
+    }
+
+    $this->assertTrue($success, 'All terms were retrieved properly');
   }
 
   /**
