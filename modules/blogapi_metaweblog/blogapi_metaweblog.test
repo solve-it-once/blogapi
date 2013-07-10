@@ -260,6 +260,82 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
    * test metaWeblog.getRecentPosts().
    */
   public function testGetRecentPosts() {
+    $default_title = 'Default title ';
+    $default_body = 'Default body ';
 
+    for ($i = 0; $i < 11; $i++) {
+      $this->createPostViaxmlrpc($default_title . $i, $default_body . $i);
+    }
+
+    $posts_count = 9;
+
+    $results = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.getRecentPosts' => array(
+        $this->blogID,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+        $posts_count,
+      )
+    ));
+
+    $this->assertTrue(is_array($results) && count($results) == $posts_count, 'Service returned correct posts number');
+    $success = TRUE;
+
+    foreach ($results as $post) {
+      $node = node_load($post['postid']);
+
+      if (empty($node) || $node->title != $post['title']
+        || (!empty($node->body[LANGUAGE_NONE][0]['value']) && $node->body[LANGUAGE_NONE][0]['value'] != $post['description'])) {
+        $success = FALSE;
+      }
+    }
+
+    $this->assertTrue($success, 'All nodes were retrieved properly');
+  }
+
+  protected function createPostViaxmlrpc($title, $body, $status = 1) {
+    return xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.newPost' => array(
+        $this->blogID,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+        array(
+          'title' => $title,
+          'description' => $body,
+        ),
+        $status
+      )
+    ));
+  }
+
+  /**
+   * Returns a new vocabulary with random properties.
+   */
+  function createVocabulary() {
+    // Create a vocabulary.
+    $vocabulary = new stdClass();
+    $vocabulary->name = $this->randomName();
+    $vocabulary->description = $this->randomName();
+    $vocabulary->machine_name = drupal_strtolower($this->randomName());
+    $vocabulary->help = '';
+    $vocabulary->nodes = array('article' => 'article');
+    $vocabulary->weight = mt_rand(0, 10);
+    taxonomy_vocabulary_save($vocabulary);
+
+    return $vocabulary;
+  }
+
+  /**
+   * Returns a new term with random properties in vocabulary $vid.
+   */
+  function createTerm($vocabulary) {
+    $term = new stdClass();
+    $term->name = $this->randomName();
+    $term->description = $this->randomName();
+    // Use the first available text format.
+    $term->format = db_query_range('SELECT format FROM {filter_format}', 0, 1)->fetchField();
+    $term->vid = $vocabulary->vid;
+    taxonomy_term_save($term);
+    return $term;
   }
 }
