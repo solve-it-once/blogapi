@@ -621,7 +621,9 @@ function blogapi_edit_post($postid, $username, $password, $content, $publish) {
     $new_node->date = format_date($old_node->created, 'custom', 'Y-m-d H:i:s O');
   }
 
-  _blogapi_mt_extra($new_node, $content);
+  if (function_exists('_blogapi_mt_extra')) {
+    _blogapi_mt_extra($new_node, $content);
+  }
 
   module_invoke_all('blogapi_node_edit', $new_node);
 
