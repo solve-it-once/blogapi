@@ -80,7 +80,37 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
    * Test metaWeblog.editPost().
    */
   public function testEditPost() {
+    $post_title = user_password(20);
+    $post_body = user_password(20);
+    $nid = $this->createPostViaxmlrpc($post_title, $post_body);
+    $old_node = node_load($nid);
+    debug($old_node);
 
+    $post_title .= ' modified title';
+    $post_body .= ' modified body';
+
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.editPost' => array(
+        $nid,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+        array(
+          'title' => $post_title,
+          'description' => $post_body,
+        ),
+        0
+      )
+    ));
+
+    $new_node = node_load($nid, NULL, TRUE);
+    debug($new_node);
+    $this->assertTrue($result && $new_node->title != $old_node->title, 'Node was updated');
+
+    $this->assertTrue($new_node->title == $post_title, 'Title was updated');
+
+    $this->assertTrue(!empty($new_node->body[LANGUAGE_NONE][0]['value']) && $new_node->body[LANGUAGE_NONE][0]['value'] == $post_body, 'Body was updated');
+
+    $this->assertTrue($new_node->status == 0, 'Node was unpublished');
   }
 
   /**
