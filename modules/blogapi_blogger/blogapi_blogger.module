@@ -352,6 +352,9 @@ function blogapi_blogger_get_user_info($appid, $username, $password) {
   // Validate the user.
   $user = blogapi_validate_user($username, $password);
 
+  // Reload user without services_remove_user_data to get email
+  $user = user_load($user->uid, TRUE);
+
   // Try to guess the user's first and last name.
   $name = explode(' ', isset($user->realname) ? $user->realname : $user->name, 2);
 

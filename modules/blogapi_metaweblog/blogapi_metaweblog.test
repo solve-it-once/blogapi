@@ -6,7 +6,7 @@
  */
 class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
   protected $profile = 'testing';
-  protected $blogID = 'article';
+  protected $blogID;
   protected $privilegedUser;
   protected $testfile;
   protected $privilegedUser2;
@@ -50,8 +50,9 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
     $this->privilegedUser2->mail = 'test@example.com';
     $this->privilegedUser2->name = 'Test user2';
     user_save($this->privilegedUser2);
-
-    $this->drupalCreateContentType(array('type' => 'article'));
+    $type = $this->drupalCreateContentType(array('type' => 'article'));
+    $this->blogID = $type->type;
+    variable_set('blogapi_node_types', array($this->blogID => $this->blogID));
   }
 
   /**
@@ -61,7 +62,6 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
     $post_title = user_password(20);
     $post_body = user_password(20);
     $nid = $this->createPostViaxmlrpc($post_title, $post_body);
-
 
     $this->assertTrue(!empty($nid), 'Node ID was returned');
 
@@ -84,7 +84,6 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
     $post_body = user_password(20);
     $nid = $this->createPostViaxmlrpc($post_title, $post_body);
     $old_node = node_load($nid);
-    debug($old_node);
 
     $post_title .= ' modified title';
     $post_body .= ' modified body';
@@ -103,7 +102,6 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
     ));
 
     $new_node = node_load($nid, NULL, TRUE);
-    debug($new_node);
     $this->assertTrue($result && $new_node->title != $old_node->title, 'Node was updated');
 
     $this->assertTrue($new_node->title == $post_title, 'Title was updated');
@@ -149,6 +147,7 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
 
   /**
    * Test metaWeblog.newMediaObject().
+   * @TODO finish this test
    */
   public function testNewMediaObject() {
     $this->testfiles = $this->drupalGetTestFiles('image');
@@ -166,10 +165,7 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
         ),
       )
     ));
-    $this->assert('pass', '' . xmlrpc_error_msg());
 
-    debug(json_encode($this->testfile));
-    debug(json_encode($result));
     $this->assertTrue(is_file($result['url']), 'New file saved to disk.', 'FileResource: Create');
   }
 

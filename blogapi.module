@@ -559,7 +559,9 @@ function blogapi_validate_terms($node) {
  * Helper function. Get BlogAPI node types.
  */
 function blogapi_get_node_types() {
-  $node_types = array_filter(variable_get('blogapi_node_types', array('article', 'article')));
+  $node_types = array_map('check_plain', node_type_get_names());
+  $defaults = !empty($node_types['article']) ? array('article' => 'article'): array();
+  $node_types = array_filter(variable_get('blogapi_node_types', $defaults));
   return $node_types;
 }
 
