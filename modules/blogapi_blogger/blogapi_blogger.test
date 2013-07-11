@@ -63,7 +63,11 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
   public function testGetUsersBlogs() {
     // Test authantication with random username/password
     $blog_types = xmlrpc($this->xmlrpcUrl, array(
-      'blogger.getUsersBlogs' => array('1234567890', user_password(10), user_password(10)),
+      'blogger.getUsersBlogs' => array(
+        '1234567890',
+        user_password(10),
+        user_password(10)
+      ),
     ));
     $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
 
@@ -124,21 +128,45 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
    * Test blogger.getUserInfo().
    */
   public function testGetUserInfo() {
-    // Get the username and password for use in XML-RPC calls.
-    $username = $this->privilegedUser->name;
-    $password = $this->privilegedUser->pass_raw;
-
-    $user_info = xmlrpc($this->xmlrpcUrl, array(
-      'blogger.getUserInfo' => array('1234567890', $username, $password),
+    // Test authantication with random username/password
+    $blog_types = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.getUserInfo' => array(
+        '1234567890',
+        user_password(10),
+        user_password(10)
+      ),
     ));
 
-    // Make sure all this data is correct.
-    $this->assertEqual($user_info['userid'], 2, t('Returned data has correct userid'));
-    $this->assertEqual($user_info['firstname'], 'Test', t('Returned data has correct username'));
-    $this->assertEqual($user_info['lastname'], 'user', t('Returned data has correct lastname'));
-    $this->assertEqual($user_info['nickname'], $username, t('Returned data has correct nickname'));
-    $this->assertEqual($user_info['email'], 'test@example.com', t('Returned data has correct email.'));
-    $this->assertEqual($user_info['url'], url('user/2', array('absolute' => TRUE)), t('Returned data has correct URL'));
+    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
+
+    // Test user without blogAPI permission.
+    $blog_types = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.getUserInfo' => array(
+        '1234567890',
+        $this->unPrivilegedUser->name,
+        $this->unPrivilegedUser->pass_raw
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
+
+    $user_info = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.getUserInfo' => array(
+        '1234567890',
+        $this->privilegedUser->name,
+        $this->privilegedUser->pass_raw
+      ),
+    ));
+
+    // Get firstname and lastname
+    $name = explode(' ', !empty($this->privilegedUser->realname) ? $this->privilegedUser->realname : $this->privilegedUser->name, 2);
+
+    $this->assertEqual($user_info['userid'], $this->privilegedUser->uid, t('Returned data has correct userid'));
+    $this->assertEqual($user_info['firstname'], $name[0], t('Returned data has correct username'));
+    $this->assertEqual($user_info['lastname'], (!empty($name[1]) ? $name[1] : ''), t('Returned data has correct lastname'));
+    $this->assertEqual($user_info['nickname'], $this->privilegedUser->name, t('Returned data has correct nickname'));
+    $this->assertEqual($user_info['email'], $this->privilegedUser->mail, t('Returned data has correct email.'));
+    $this->assertEqual($user_info['url'], url('user/' . $this->privilegedUser->uid, array('absolute' => TRUE)), t('Returned data has correct URL'));
   }
 
   /**
