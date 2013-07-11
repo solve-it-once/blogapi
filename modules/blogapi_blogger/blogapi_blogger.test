@@ -173,31 +173,57 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
    * Test blogger.newPost()
    */
   public function testNewPost() {
-    // Get the username and password for use in XML-RPC calls.
-    $username = $this->privilegedUser->name;
-    $password = $this->privilegedUser->pass_raw;
+    // Prepare data for nodes
+    $node_title = user_password(10);
+    $node_body = user_password(20);
+    $content = '<title>' . $node_title . '</title>' . $node_body;
+    $missed_type = '_arcticle';
 
-    $content = '<title>Test post</title>Lorem ipsum dolor sit amet, consectetur
-      lorem dui, molestie a porttitor vitae, dapibus id augue. Mauris sit amet
-      lorem ipsum, ac vehicula mauris. Nunc purus dui, ultrices sed faucibus in,
-      commodo id justo. Phasellus pretium ipsum in velit lacinia adipiscing
-      semper turpis molestie. Sed vel enim ut massa placerat fringilla. Nam
-      ultricies felis ut eros sodales consequat. Donec et justo nisl, in blandit
-      nibh. Sed luctus, nunc ut scelerisque consectetur, massa tortor vehicula
-      sapien, sit amet fermentum mauris velit sit amet sem.';
+    // Test authantication with random username/password
+    $blog_types = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.newPost' => array(
+        '1234567890',
+      ),
+    ));
 
-    // Create a content type.
-    $type = $this->drupalCreateContentType();
-    variable_set('blogapi_node_types', array($type->type));
+    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
+
+    // Test authantication with random username/password
+    $blog_types = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.newPost' => array(
+        '1234567890',
+        $missed_type,
+        user_password(10),
+        user_password(10),
+        $content,
+        TRUE
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
+
+    // Test user without blogAPI permission.
+    $blog_types = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.newPost' => array(
+        '1234567890',
+        $missed_type,
+        $this->unPrivilegedUser->name,
+        $this->unPrivilegedUser->pass_raw,
+        $content,
+        TRUE
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
 
     // Try to create the node. This should fail because the user does not have
     // permission to create this content type.
     $nid = xmlrpc($this->xmlrpcUrl, array(
       'blogger.newPost' => array(
         '1234567890',
-        $type->type,
-        $username,
-        $password,
+        $missed_type,
+        $this->privilegedUser->name,
+        $this->privilegedUser->pass_raw,
         $content,
         TRUE
       ),
@@ -206,6 +232,42 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
     $this->assertEqual(xmlrpc_error_msg(), 'You do not have permission to create this type of post.',
       t('Node access is being respected.'));
 
+
+    // Try to create the node. This should fail because the user does not have
+    // permission to create this content type.
+    $nid = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.newPost' => array(
+        '1234567890',
+        $missed_type,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+        $content,
+        TRUE
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('BlogAPI is not configured to support the @type content type.', array('@type' => $missed_type)),
+      $missed_type . ' type is missed.');
+
+    // Create a content type.
+    $type = $this->drupalCreateContentType();
+    // Test with existing content type but not allowed for BlogAPI
+    $nid = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.newPost' => array(
+        '1234567890',
+        $type->type,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+        $content,
+        TRUE
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('BlogAPI is not configured to support the @type content type.', array('@type' => $type->type)),
+      $type->type . ' is not allowed for BlogAPI yet.');
+
+    // Allow to user our content type with BlogAPI
+    variable_set('blogapi_node_types', array($type->type));
     // Create the node. This should work because the user has administer nodes.
     $nid = xmlrpc($this->xmlrpcUrl, array(
       'blogger.newPost' => array(
@@ -220,7 +282,8 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
 
     // Load the node and validate the data.
     $node = node_load($nid[0]);
-    $this->assertEqual($node->title, 'Test post', t('New node title is set correctly.'));
+    $this->assertEqual($node->title, $node_title, t('New node title is set correctly.'));
+    $this->assertEqual($node->body[LANGUAGE_NONE][0]['value'], $node_body, t('New node body is set correctly.'));
     $this->assertEqual($node->status, 1, t('New node is published'));
   }
 

@@ -376,7 +376,7 @@ function blogapi_blogger_new_post($appid, $blogid, $username, $password, $conten
     'type' => $blogid,
     'status' => $publish,
     'title' => blogapi_blogger_extract_title($content),
-    'body' => $content,
+    'body' => blogapi_blogger_extract_body($content),
   );
 
   $node_id = blogapi_new_post($username, $password, $postdata);
@@ -456,14 +456,18 @@ function blogapi_blogger_get_recent_posts($appkey, $blogid, $username, $password
 /**
  * Extract the node title from the contents field.
  */
-function blogapi_blogger_extract_title(&$contents) {
+function blogapi_blogger_extract_title($contents) {
   if (preg_match('/<title>(.*?)<\/title>/i', $contents, $title)) {
-    $title = strip_tags($title[0]);
-    $contents = preg_replace('/<title>.*?<\/title>/i', '', $contents);
-  }
-  else {
-    list($title, $contents) = explode("\n", $contents, 2);
+    return strip_tags($title[0]);
+
   }
 
-  return $title;
+  return '';
+}
+
+/**
+ * Extract the node body from the contents field.
+ */
+function blogapi_blogger_extract_body($contents) {
+  return preg_replace('/<title>.*?<\/title>/i', '', $contents);
 }
