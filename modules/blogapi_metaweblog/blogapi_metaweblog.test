@@ -98,7 +98,7 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
           'title' => $post_title,
           'description' => $post_body,
         ),
-        0
+        1
       )
     ));
 
@@ -109,8 +109,6 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
     $this->assertTrue($new_node->title == $post_title, 'Title was updated');
 
     $this->assertTrue(!empty($new_node->body[LANGUAGE_NONE][0]['value']) && $new_node->body[LANGUAGE_NONE][0]['value'] == $post_body, 'Body was updated');
-
-    $this->assertTrue($new_node->status == 0, 'Node was unpublished');
   }
 
   /**
