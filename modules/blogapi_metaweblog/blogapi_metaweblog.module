@@ -467,5 +467,6 @@ function blogapi_metaweblog_get_vocabularies_per_content_type($type) {
     }
   }
 
-  return $vocabularies;
+  // Return only unique items, because bundle can have some taxonomy reference fields with the same vocabulary
+  return array_unique($vocabularies);
 }
