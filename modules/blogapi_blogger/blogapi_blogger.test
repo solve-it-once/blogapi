@@ -6,6 +6,7 @@
  */
 class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
   protected $profile = 'testing';
+  protected $unPrivilegedUser;
   protected $privilegedUser;
   protected $privilegedUser2;
   protected $xmlrpcUrl;
@@ -31,21 +32,28 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
       'filter',
       'services',
       'xmlrpc_server',
+      'taxonomy',
     ));
 
     // Get the URL of the XML-RPC endpoint.
     $this->xmlrpcUrl = url('blogapi/xmlrpc', array('absolute' => TRUE));
 
     // Create a user with appropriate permissions.
+    $this->unPrivilegedUser = $this->drupalCreateUser(array('access content'));
+    $this->unPrivilegedUser->mail = 'test1@example.com';
+    $this->unPrivilegedUser->name = 'Test user 1';
+    user_save($this->unPrivilegedUser);
+
+    // Create a user with appropriate permissions.
     $this->privilegedUser = $this->drupalCreateUser(array('manage content with blogapi'));
-    $this->privilegedUser->mail = 'test@example.com';
-    $this->privilegedUser->name = 'Test user';
+    $this->privilegedUser->mail = 'test2@example.com';
+    $this->privilegedUser->name = 'Test user 2';
     user_save($this->privilegedUser);
 
     // Create another user with more permissions.
-    $this->privilegedUser2 = $this->drupalCreateUser(array('manage content with blogapi', 'bypass node access', 'administer nodes'));
-    $this->privilegedUser2->mail = 'test@example.com';
-    $this->privilegedUser2->name = 'Test user2';
+    $this->privilegedUser2 = $this->drupalCreateUser(array('manage content with blogapi', 'bypass node access', 'administer nodes', 'administer taxonomy'));
+    $this->privilegedUser2->mail = 'test3@example.com';
+    $this->privilegedUser2->name = 'Test user 3';
     user_save($this->privilegedUser2);
   }
 
@@ -53,33 +61,63 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
    * Test blogger.getUsersBlogs().
    */
   public function testGetUsersBlogs() {
-    // Get the username and password for use in XML-RPC calls.
-    $username = $this->privilegedUser->name;
-    $password = $this->privilegedUser->pass_raw;
+    // Test authantication with random username/password
+    $blog_types = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.getUsersBlogs' => array('1234567890', user_password(10), user_password(10)),
+    ));
+    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
+
+    // Test user without blogAPI permission.
+    $blog_types = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.getUsersBlogs' => array(
+        '1234567890',
+        $this->unPrivilegedUser->name,
+        $this->unPrivilegedUser->pass_raw
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
 
     // Test blog type retrieval before creating and configuring node types.
     $blog_types = xmlrpc($this->xmlrpcUrl, array(
-      'blogger.getUsersBlogs' => array('1234567890', $username, $password),
+      'blogger.getUsersBlogs' => array(
+        '1234567890',
+        $this->privilegedUser->name,
+        $this->privilegedUser->pass_raw
+      ),
     ));
+
     $this->assertEqual(count($blog_types), 0, t('No blog types exist and none were returned'));
 
     // Create a content type and re-test. No types should be returned
     // because the content type is not configured for use with BlogAPI.
     $type = $this->drupalCreateContentType();
+
     $blog_types = xmlrpc($this->xmlrpcUrl, array(
-      'blogger.getUsersBlogs' => array('1234567890', $username, $password),
+      'blogger.getUsersBlogs' => array(
+        '1234567890',
+        $this->privilegedUser->name,
+        $this->privilegedUser->pass_raw
+      ),
     ));
+
     $this->assertEqual(count($blog_types), 0, t('No blog types are configured and none were returned'));
 
     // Add the new content type to the blog list and make sure that it's
     // returned correctly.
     variable_set('blogapi_node_types', array($type->type));
+
     $blog_types = xmlrpc($this->xmlrpcUrl, array(
-      'blogger.getUsersBlogs' => array('1234567890', $username, $password),
+      'blogger.getUsersBlogs' => array(
+        '1234567890',
+        $this->privilegedUser->name,
+        $this->privilegedUser->pass_raw
+      ),
     ));
+
     $this->assertEqual(count($blog_types), 1, t('One blog type is configured and one was returned'));
     $this->assertEqual($blog_types[0]['blogid'], $type->type, t('The configured blog type is the one that was returned'));
-    $this->assertEqual($blog_types[0]['blogName'], $username . ': ' . $type->name, t('The blogName is returned correctly.'));
+    $this->assertEqual($blog_types[0]['blogName'], $this->privilegedUser->name . ': ' . $type->name, t('The blogName is returned correctly.'));
   }
 
   /**
@@ -136,6 +174,7 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
         TRUE
       ),
     ));
+
     $this->assertEqual(xmlrpc_error_msg(), 'You do not have permission to create this type of post.',
       t('Node access is being respected.'));
 
@@ -161,7 +200,39 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
    * Test blogger.editPost().
    */
   public function testEditPost() {
+    $post_title = user_password(20);
+    $post_body = user_password(20);
+    $nid = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.newPost' => array(
+        '1234567890',
+        $type->type,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+        '<title>' . $post_title . '</title>' . $post_body,
+        TRUE,
+      ),
+    ));
+    $old_node = node_load($nid);
 
+    $post_title .= ' modified title';
+    $post_body .= ' modified body';
+
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.editPost' => array(
+        $nid,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+        '<title>' . $post_title . '</title>' . $post_body,
+        TRUE
+      )
+    ));
+
+    $new_node = node_load($nid, NULL, TRUE);
+    $this->assertTrue($result && $new_node->title != $old_node->title, 'Node was updated');
+
+    $this->assertTrue($new_node->title == $post_title, 'Title was updated');
+
+    $this->assertTrue(!empty($new_node->body[LANGUAGE_NONE][0]['value']) && $new_node->body[LANGUAGE_NONE][0]['value'] == $post_body, 'Body was updated');
   }
 
   /**
