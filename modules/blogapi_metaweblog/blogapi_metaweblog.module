@@ -399,7 +399,7 @@ function blogapi_metaweblog_new_media_object($blogid, $username, $password, $fil
 
 /**
  * Service callback for metaWeblog.getCategories
- * @TODO somplify this callback
+ * @TODO simplify this callback
  */
 function blogapi_metaweblog_get_categories($blogid, $username, $password) {
   // Validate the user.
