@@ -291,39 +291,105 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
    * Test blogger.editPost().
    */
   public function testEditPost() {
-    $post_title = user_password(20);
-    $post_body = user_password(20);
-    $nid = xmlrpc($this->xmlrpcUrl, array(
-      'blogger.newPost' => array(
+    // Test authantication with random username/password
+    $blog_types = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.editPost' => array(
         '1234567890',
-        $type->type,
-        $this->privilegedUser2->name,
-        $this->privilegedUser2->pass_raw,
-        '<title>' . $post_title . '</title>' . $post_body,
+      ),
+    ));
+
+    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
+
+    // Prepare data for nodes
+    $node_title = user_password(10);
+    $node_body = user_password(20);
+    $content = '<title>' . $node_title . '</title>' . $node_body;
+    $allowed_type = $this->drupalCreateContentType();
+    $disallowed_type = $this->drupalCreateContentType();
+
+    // Allow to user our content type with BlogAPI
+    variable_set('blogapi_node_types', array($allowed_type->type));
+
+    $wrong_node = $this->drupalCreateNode(array('type' => $disallowed_type->type));
+    $correct_node = $this->drupalCreateNode(array('type' => $allowed_type->type, 'title' => $node_title, 'body' => array(LANGUAGE_NONE => array(array('value' => $node_body)))));
+
+    // Test authantication with random username/password
+    $blog_types = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.editPost' => array(
+        '1234567890',
+        $correct_node->nid,
+        user_password(10),
+        user_password(10),
+        $content,
+        TRUE
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
+
+
+    // Test user without blogAPI permission.
+    $blog_types = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.editPost' => array(
+        '1234567890',
+        $correct_node->nid,
+        $this->unPrivilegedUser->name,
+        $this->unPrivilegedUser->pass_raw,
+        $content,
+        TRUE
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
+
+    // Test edit unexisting node
+    $nid = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.editPost' => array(
+        '1234567890',
+        0,
+        $this->privilegedUser->name,
+        $this->privilegedUser->pass_raw,
+        $content,
         TRUE,
       ),
     ));
-    $old_node = node_load($nid);
 
-    $post_title .= ' modified title';
-    $post_body .= ' modified body';
+    $this->assertEqual(xmlrpc_error_msg(), t('Node @nid not found', array('@nid' => 0)), t('Not found error returned'));// Test edit unexisting node
+
+    // Try to update node with unprevileged user
+    $nid = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.editPost' => array(
+        '1234567890',
+        $correct_node->nid,
+        $this->privilegedUser->name,
+        $this->privilegedUser->pass_raw,
+        $content,
+        TRUE,
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to update this post.'), t('User must have node edit permissions'));
+
+    $node_title .= ' modified title';
+    $node_body .= ' modified body';
 
     $result = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.editPost' => array(
-        $nid,
+      'blogger.editPost' => array(
+        '1234567890',
+        $correct_node->nid,
         $this->privilegedUser2->name,
         $this->privilegedUser2->pass_raw,
-        '<title>' . $post_title . '</title>' . $post_body,
+        '<title>' . $node_title . '</title>' . $node_body,
         TRUE
       )
     ));
+    
+    $new_node = node_load($correct_node->nid, NULL, TRUE);
+    $this->assertTrue($result && $new_node->title != $correct_node->title, 'Node was updated');
 
-    $new_node = node_load($nid, NULL, TRUE);
-    $this->assertTrue($result && $new_node->title != $old_node->title, 'Node was updated');
+    $this->assertTrue($new_node->title == $node_title, 'Title was updated');
 
-    $this->assertTrue($new_node->title == $post_title, 'Title was updated');
-
-    $this->assertTrue(!empty($new_node->body[LANGUAGE_NONE][0]['value']) && $new_node->body[LANGUAGE_NONE][0]['value'] == $post_body, 'Body was updated');
+    $this->assertTrue(!empty($new_node->body[LANGUAGE_NONE][0]['value']) && $new_node->body[LANGUAGE_NONE][0]['value'] == $node_body, 'Body was updated');
   }
 
   /**
