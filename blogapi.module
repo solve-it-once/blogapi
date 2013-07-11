@@ -616,9 +616,9 @@ function blogapi_edit_post($postid, $username, $password, $content, $publish) {
   // Save the original status for validation of permissions.
   $new_node->status = $publish;
   $new_node->type = $old_node->type;
-  $new_node->title = $content['title'];
   // Support bloggerAPI
-  $new_node->body[LANGUAGE_NONE][0]['value'] = is_string($content) ? $content : $content['description'];
+  $new_node->title = is_string($content) ? blogapi_blogger_extract_title($content) : $content['title'];
+  $new_node->body[LANGUAGE_NONE][0]['value'] = is_string($content) ? blogapi_blogger_extract_body($content) : $content['description'];
 
   if (empty($content['date']) && user_access('administer nodes')) {
     $new_node->date = format_date($old_node->created, 'custom', 'Y-m-d H:i:s O');

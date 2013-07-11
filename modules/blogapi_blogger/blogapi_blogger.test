@@ -383,7 +383,7 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
         TRUE
       )
     ));
-    
+
     $new_node = node_load($correct_node->nid, NULL, TRUE);
     $this->assertTrue($result && $new_node->title != $correct_node->title, 'Node was updated');
 
@@ -396,14 +396,137 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
    * Test blogger.getPost().
    */
   public function testGetPost() {
+    $type = $this->drupalCreateContentType();
 
+    // Allow to user our content type with BlogAPI
+    variable_set('blogapi_node_types', array($type->type));
+
+    $node = $this->drupalCreateNode(array('type' => $type->type, 'uid' => $this->privilegedUser2->uid));
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.getPost' => array(
+        '1234567890',
+      ),
+    ));
+
+    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.getPost' => array(
+        '1234567890',
+        $node->nid,
+        user_password(10),
+        user_password(10),
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
+
+    // Test user without blogAPI permission.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.getPost' => array(
+        '1234567890',
+        $node->nid,
+        $this->unPrivilegedUser->name,
+        $this->unPrivilegedUser->pass_raw,
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
+
+    // Test user without node view permission.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.getPost' => array(
+        '1234567890',
+        $node->nid,
+        $this->privilegedUser->name,
+        $this->privilegedUser->pass_raw,
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You are not authorized to view post @postid', array('@postid' => $node->nid)), t('User must node view permissions'));
+
+    // Normal test
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.getPost' => array(
+        '1234567890',
+        $node->nid,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+      ),
+    ));
+
+    $this->assertTrue($result['userid'] == $this->privilegedUser2->name, 'Author name is correct');
+    $this->assertTrue($result['dateCreated'] == xmlrpc_date($node->created), 'Created date is correct');
+    $this->assertTrue($result['title'] == $node->title, 'Post title is correct');
+    $this->assertTrue($result['postid'] == $node->nid, 'Post ID is correct');
+    $node_body = !empty($node->body[LANGUAGE_NONE][0]['value']) ? $node->body[LANGUAGE_NONE][0]['value'] : '';
+    $this->assertTrue($result['content'] == '<title>' . $node->title . '</title>' . $node_body, 'Post content is correct');
+    $this->assertTrue($result['link'] == url('node/' . $node->nid, array('absolute' => TRUE)), 'Post link is correct');
   }
 
   /**
    * Test blogger.deletePost().
    */
   public function testDeletePost() {
+    $type = $this->drupalCreateContentType();
 
+    // Allow to user our content type with BlogAPI
+    variable_set('blogapi_node_types', array($type->type));
+
+    $node = $this->drupalCreateNode(array('type' => $type->type, 'uid' => $this->privilegedUser2->uid));
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.deletePost' => array(
+        '1234567890',
+      ),
+    ));
+
+    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.deletePost' => array(
+        '1234567890',
+        $node->nid,
+        user_password(10),
+        user_password(10),
+        TRUE
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
+
+    // Test user without blogAPI permission.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.deletePost' => array(
+        '1234567890',
+        $node->nid,
+        $this->unPrivilegedUser->name,
+        $this->unPrivilegedUser->pass_raw,
+        TRUE
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
+
+    // Test user without blogAPI permission.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'blogger.deletePost' => array(
+        '1234567890',
+        $node->nid,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+        TRUE
+      ),
+    ));
+
+    $deleted_node = node_load($node->nid, NULL, TRUE);
+
+    $this->assertTrue($result && !$deleted_node, 'Node was deleted');
   }
 
   /**
