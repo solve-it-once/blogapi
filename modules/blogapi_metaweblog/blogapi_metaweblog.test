@@ -344,8 +344,54 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
    * @TODO finish this test
    */
   public function testNewMediaObject() {
+    $type = $this->drupalCreateContentType();
+
     $this->testfiles = $this->drupalGetTestFiles('image');
     $this->testfile = current($this->testfiles);
+    // Allow to user our content type with BlogAPI
+    variable_set('blogapi_node_types', array($type->type));
+
+    $node = $this->drupalCreateNode(array('type' => $type->type, 'uid' => $this->privilegedUser2->uid));
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.newMediaObject' => array(
+      ),
+    ));
+
+    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.newMediaObject' => array(
+        $type->type,
+        user_password(10),
+        user_password(10),
+        array(
+          'name' => $this->testfile->filename,
+          'type' => mime_content_type(file_create_url($this->testfile->uri)),
+          'bits' => base64_encode(file_get_contents(file_create_url($this->testfile->uri))),
+        ),
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
+
+    // Test user without blogAPI permission.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.newMediaObject' => array(
+        $type->type,
+        user_password(10),
+        user_password(10),
+        array(
+          'name' => $this->testfile->filename,
+          'type' => mime_content_type(file_create_url($this->testfile->uri)),
+          'bits' => base64_encode(file_get_contents(file_create_url($this->testfile->uri))),
+        ),
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
 
     $result = xmlrpc($this->xmlrpcUrl, array(
       'metaWeblog.newMediaObject' => array(
