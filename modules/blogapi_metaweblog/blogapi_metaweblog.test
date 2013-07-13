@@ -413,9 +413,10 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
    * Test metaWeblog.getCategories().
    */
   public function testGetCategories() {
-    $this->admin_user = $this->drupalCreateUser(array('administer taxonomy', 'bypass node access', 'administer services'));
+    $this->admin_user = $this->drupalCreateUser(array('administer content types', 'administer taxonomy', 'bypass node access', 'administer services'));
     $this->drupalLogin($this->admin_user);
     $this->vocabulary = $this->createVocabulary();
+    $type = $this->drupalCreateContentType();
 
     $field = array(
       'field_name' => 'taxonomy_' . $this->vocabulary->machine_name,
@@ -435,7 +436,7 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
 
     $this->instance = array(
       'field_name' => 'taxonomy_' . $this->vocabulary->machine_name,
-      'bundle' => 'article',
+      'bundle' => $type->type,
       'entity_type' => 'node',
       'widget' => array(
         'type' => 'options_select',
@@ -456,21 +457,56 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
     }
 
     $testNode = array(
-      'type' => 'article',
+      'type' => $type->type,
       $field['field_name'] => array(
         LANGUAGE_NONE => array(
           array(
             'tid' => $terms[0]->tid
           )
         )
-      )
+      ),
+      'uid' => $this->privilegedUser2->uid,
     );
+
+    // Allow to user our content type with BlogAPI
+    variable_set('blogapi_node_types', array($type->type));
 
     $node = $this->drupalCreateNode($testNode);
 
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.newMediaObject' => array(
+      ),
+    ));
+
+    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.getCategories' => array(
+        $type->type,
+        user_password(10),
+        user_password(10),
+
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
+
+    // Test user without blogAPI permission.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.getCategories' => array(
+        $type->type,
+        $this->unPrivilegedUser->name,
+        $this->unPrivilegedUser->pass_raw,
+      )
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
+
     $results = xmlrpc($this->xmlrpcUrl, array(
       'metaWeblog.getCategories' => array(
-        $this->blogID,
+        $type->type,
         $this->privilegedUser2->name,
         $this->privilegedUser2->pass_raw,
       )
@@ -494,32 +530,80 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
    * test metaWeblog.getRecentPosts().
    */
   public function testGetRecentPosts() {
-    $default_title = 'Default title ';
-    $default_body = 'Default body ';
+    $type = $this->drupalCreateContentType();
+    $number_of_posts = 9;
+    $nodes = array();
 
     for ($i = 0; $i < 11; $i++) {
-      $this->createPostViaxmlrpc($default_title . $i, $default_body . $i);
+      $node = $this->drupalCreateNode(array('type' => $type->type, 'uid' => $this->privilegedUser2->uid));
+      $nodes[$node->nid] = $node;
     }
 
-    $posts_count = 9;
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.getRecentPosts' => array(
+      ),
+    ));
+
+    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.getRecentPosts' => array(
+        $type->type,
+        user_password(10),
+        user_password(10),
+        $number_of_posts,
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
+
+    // Test user without blogAPI permission.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.getRecentPosts' => array(
+        $type->type,
+        $this->unPrivilegedUser->name,
+        $this->unPrivilegedUser->pass_raw,
+        $number_of_posts,
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
+
+    // Test user without node view permission.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'metaWeblog.getRecentPosts' => array(
+        $type->type,
+        $this->privilegedUser->name,
+        $this->privilegedUser->pass_raw,
+        $number_of_posts,
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('BlogAPI is not configured to support the @type content type.', array('@type' => $type->type)),
+      $type->type . ' is not allowed for BlogAPI yet.');
+
+    // Allow to user our content type with BlogAPI
+    variable_set('blogapi_node_types', array($type->type));
 
     $results = xmlrpc($this->xmlrpcUrl, array(
       'metaWeblog.getRecentPosts' => array(
-        $this->blogID,
+        $type->type,
         $this->privilegedUser2->name,
         $this->privilegedUser2->pass_raw,
-        $posts_count,
+        $number_of_posts,
       )
     ));
 
-    $this->assertTrue(is_array($results) && count($results) == $posts_count, 'Service returned correct posts number');
+    $this->assertTrue(is_array($results) && count($results) == $number_of_posts, 'Service returned correct posts number');
     $success = TRUE;
 
     foreach ($results as $post) {
       $node = node_load($post['postid']);
 
-      if (empty($node) || $node->title != $post['title']
-        || (!empty($node->body[LANGUAGE_NONE][0]['value']) && $node->body[LANGUAGE_NONE][0]['value'] != $post['description'])) {
+      if (empty($node) || $node->title != $nodes[$post['postid']]->title
+        || (!empty($node->body[LANGUAGE_NONE][0]['value']) && $node->body[LANGUAGE_NONE][0]['value'] != $nodes[$post['postid']]->body[LANGUAGE_NONE][0]['value'])) {
         $success = FALSE;
       }
     }
