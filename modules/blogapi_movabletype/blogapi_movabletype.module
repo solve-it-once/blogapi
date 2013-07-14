@@ -273,26 +273,7 @@ function blogapi_movabletype_get_category_list($blogid, $username, $password) {
  * Service callback for mt.getPostCategories
  */
 function blogapi_movabletype_get_post_categories($postid, $username, $password) {
-  // Validate the user.
-  $user = blogapi_validate_user($username, $password);
-
-  $node = node_load($postid);
-  if (!node_access('view', $node, $user) || !user_access('administer nodes')) {
-    // User does not have permission to view the node.
-    return services_error(t('You are not authorized to view post @postid', array('@postid' => $postid)), 403);
-  }
-
-  $terms = module_invoke('taxonomy', 'node_get_terms', $node, 'tid');
-  $categories = array();
-  foreach ($terms as $term) {
-    $term_name = $term->name;
-    foreach (module_invoke('taxonomy', 'get_parents', $term->tid, 'tid') as $parent) {
-      $term_name = $parent->name . '/' . $term_name;
-    }
-    $categories[] = array('categoryName' => $term_name, 'categoryId' => $term->tid, 'isPrimary' => TRUE);
-  }
-
-  return $categories;
+  return blogapi_get_node_categories($postid, $username, $password);
 }
 
 /**
