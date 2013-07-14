@@ -239,29 +239,69 @@ function blogapi_movabletype_get_post_categories($postid, $username, $password) 
 
 /**
  * Service callback for mt.setPostCategories
+ *  @TODO rewrite this callback, because I'm afraid it's too complicated now :(
  */
 function blogapi_movabletype_set_post_categories($postid, $username, $password, $categories) {
-  // Validate the user.
-  $user = blogapi_validate_user($username, $password);
-
   $node = node_load($postid);
-  if (!node_access('update', $node, $user) || !user_access('administer nodes')) {
-    // User does not have permission to update the node.
-    return services_error(t('You are not authorized to view post @postid', array('@postid' => $postid)), 403);
+
+  if (!$node) {
+    return services_error(t('Node @nid not found', array('@nid' => $postid)), 404);
   }
 
-  $node->taxonomy = array();
-  foreach ($categories as $category) {
-    $node->taxonomy[] = $category['categoryId'];
+  $not_found_errors = array();
+  $wrong_vocabulary_errors = array();
+  $terms_data = $node_data = array();
+  $taxonomy_fields = blogapi_get_taxonomy_term_reference_fields_with_vocabularies(array($node->type));
+
+  if (!empty($taxonomy_fields) && !empty($categories)) {
+    foreach ($categories as $category) {
+      $term = taxonomy_term_load($category['categoryId']);
+
+      if (!$term) {
+        $not_found_errors[] = $category['categoryName'];
+        continue;
+      }
+
+      $success = FALSE;
+
+      foreach ($taxonomy_fields as $field_name => $field_settings) {
+        if ($field_settings['settings']['allowed_values'][0]['vocabulary'] == $term->vocabulary_machine_name) {
+          $terms_data[$field_name][] = $category['categoryId'];
+          $success = TRUE;
+          break;
+        }
+      }
+
+      if (!$success) {
+        $wrong_vocabulary_errors[] = $category['categoryName'];
+        continue;
+      }
+    }
+
+    if (!empty($not_found_errors)) {
+      return services_error(t('@terms are not found', array('@terms' => implode(' ', $not_found_errors))), 406);
+    }
+    elseif (!empty($wrong_vocabulary_errors)) {
+      return services_error(t('@terms can\'be added to this post', array('@terms' => implode(' ', $wrong_vocabulary_errors))), 406);
+    }
+    else {
+      foreach ($terms_data as $field_name => $terms) {
+        $node_data[$field_name] = array(LANGUAGE_NONE => $terms);
+
+        if (!empty($node->{$field_name})) {
+          foreach ($node->{$field_name}[LANGUAGE_NONE] as $value) {
+            $node_data[$field_name][LANGUAGE_NONE][] = $value['tid'];
+          }
+        }
+
+        array_unique($node_data[$field_name]);
+      }
+
+      return blogapi_edit_post($postid, $username, $password, array('taxonomies' => $node_data));
+    }
   }
 
-  $validated = blogapi_validate_terms($node);
-  if ($validated !== TRUE) {
-    return services_error($validated['message'], $validated['error_code']);
-  }
-
-  node_save($node);
-  return TRUE;
+  return services_error(t('This post doesn\'t have any category'), 406);
 }
 
 /**
