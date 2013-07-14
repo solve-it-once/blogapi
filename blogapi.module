@@ -432,27 +432,42 @@ function blogapi_default_services_endpoint() {
 /**
  * Helper function. Returns the latest few nodes created by a given user.
  */
-function blogapi_get_recent_posts($content_type, $user, $number_of_posts = NULL) {
+function blogapi_get_recent_posts($blogid, $username, $password, $number_of_posts = 10, $bodies = TRUE) {
+  // Validate the user.
+  $user = blogapi_validate_user($username, $password);
+
+  // Validate the content type.
+  $error = blogapi_validate_content_type($blogid);
+  if ($error !== TRUE) {
+    // Return an error if the content type is not configured for use
+    // with BlogAPI.
+    return services_error($error['message'], $error['error_code']);
+  }
+
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'node')
-    ->entityCondition('bundle', $content_type)
+    ->entityCondition('bundle', $blogid)
     ->propertyCondition('uid', $user->uid)
     ->propertyOrderBy('created', 'DESC')
-    ->addMetaData('account', user_load($user->uid))
     ->range(0, $number_of_posts);
 
   $result = $query->execute();
 
-  if (isset($result['node'])) {
-    $nodes = $result['node'];
-
+  if (!empty($result['node'])) {
     $blog_nids = array();
-    foreach ($nodes as $node) {
+    $posts = array();
+
+    foreach ($result['node'] as $node) {
       $blog_nids[] = $node->nid;
     }
 
     $blogs = node_load_multiple($blog_nids);
-    return $blogs;
+
+    foreach ($blogs as $blog) {
+      $posts[] = blogapi_format_post_for_xmlrpc($blog, $bodies);
+    }
+
+    return $posts;
   }
 
   return array();

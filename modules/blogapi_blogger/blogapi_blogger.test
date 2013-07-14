@@ -573,7 +573,8 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
         $number_of_posts,
       ),
     ));
-
+    debug(xmlrpc_error_msg());
+    debug($result);
     $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
 
     // Test user without node view permission.
@@ -586,7 +587,8 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
         $number_of_posts,
       ),
     ));
-
+    debug(xmlrpc_error_msg());
+    debug($result);
     $this->assertEqual(xmlrpc_error_msg(), t('BlogAPI is not configured to support the @type content type.', array('@type' => $type->type)),
       $type->type . ' is not allowed for BlogAPI yet.');
 
@@ -603,7 +605,8 @@ class BlogapiBloggerEndpointTestCase extends DrupalWebTestCase {
         $number_of_posts,
       ),
     ));
-    
+    debug(xmlrpc_error_msg());
+    debug($result);
     $this->assertTrue(is_array($results) && count($results) == $number_of_posts, 'Service returned correct posts number');
     $success = TRUE;
 

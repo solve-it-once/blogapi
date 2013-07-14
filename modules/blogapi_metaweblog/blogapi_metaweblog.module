@@ -409,25 +409,5 @@ function blogapi_metaweblog_get_categories($blogid, $username, $password) {
  * Service callback for metaWeblog.getRecentPosts
  */
 function blogapi_metaweblog_get_recent_posts($blogid, $username, $password, $number_of_posts) {
-  // Validate the user.
-  $user = blogapi_validate_user($username, $password);
-
-  // Validate the content type.
-  $error = blogapi_validate_content_type($blogid);
-
-  if ($error !== TRUE) {
-    // Return an error if the content type is not configured for use
-    // with BlogAPI.
-    return services_error($error['message'], $error['error_code']);
-  }
-
-  // Get posts.
-  $blogs = blogapi_get_recent_posts($blogid, $user, $number_of_posts);
-
-  $posts = array();
-  foreach ($blogs as $blog) {
-    $posts[] = blogapi_format_post_for_xmlrpc($blog, TRUE);
-  }
-
-  return $posts;
+  return blogapi_get_recent_posts($blogid, $username, $password, $number_of_posts);
 }
