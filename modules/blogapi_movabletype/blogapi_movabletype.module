@@ -213,27 +213,7 @@ function blogapi_movabletype_services_resources() {
  * Service callback for mt.publishPost
  */
 function blogapi_movabletype_publish_post($postid, $username, $password) {
-  // Validate the user.
-  blogapi_validate_user($username, $password);
-
-  $node = node_load($postid);
-  if (!$node) {
-    return services_error(t('Post @postid not found', array('@postid' => $postid)), 404);
-  }
-
-  // Nothing needs to be done: the node is already published.
-  if ($node->status == 1) {
-    return TRUE;
-  }
-
-  $node->status = 1;
-
-  // Check if current user have permissions to change node status
-  blogapi_status_error_check($node);
-
-  node_save($node);
-
-  return TRUE;
+  return blogapi_edit_post($postid, $username, $password, NULL, 1);
 }
 
 /**

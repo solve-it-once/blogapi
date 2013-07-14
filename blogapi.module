@@ -629,8 +629,6 @@ function blogapi_edit_post($postid, $username, $password, $content, $publish) {
   if (!$old_node) {
     return services_error(t('Node @nid not found', array('@nid' => $postid)), 404);
   }
-  // Let the teaser be re-generated.
-  unset($old_node->teaser);
 
   if (!node_access('update', $old_node, $user)) {
     return services_error(t('You do not have permission to update this post.'), 403);
@@ -639,16 +637,27 @@ function blogapi_edit_post($postid, $username, $password, $content, $publish) {
   // Save the original status for validation of permissions.
   $new_node->status = $publish;
   $new_node->type = $old_node->type;
-  // Support bloggerAPI
-  $new_node->title = is_string($content) ? blogapi_blogger_extract_title($content) : $content['title'];
-  $new_node->body[LANGUAGE_NONE][0]['value'] = is_string($content) ? blogapi_blogger_extract_body($content) : $content['description'];
 
-  if (empty($content['date']) && user_access('administer nodes')) {
-    $new_node->date = format_date($old_node->created, 'custom', 'Y-m-d H:i:s O');
-  }
+  // $content can be empty sometimes, in mt.publishPost for example
+  if (!empty($content)) {
+    // Let the teaser be re-generated.
+    unset($old_node->teaser);
 
-  if (function_exists('_blogapi_mt_extra')) {
-    _blogapi_mt_extra($new_node, $content);
+    if (is_string($content) || !empty($content['title'])) {
+      $new_node->title = is_string($content) ? blogapi_blogger_extract_title($content) : $content['title'];
+    }
+
+    if (is_string($content) || !empty($content['description'])) {
+      $new_node->body[LANGUAGE_NONE][0]['value'] = is_string($content) ? blogapi_blogger_extract_body($content) : $content['description'];
+    }
+
+    if (empty($content['date']) && user_access('administer nodes')) {
+      $new_node->date = format_date($old_node->created, 'custom', 'Y-m-d H:i:s O');
+    }
+
+    if (function_exists('_blogapi_mt_extra') && is_array($content)) {
+      _blogapi_mt_extra($new_node, $content);
+    }
   }
 
   return blogapi_submit_node($new_node, $old_node);

@@ -110,7 +110,7 @@ class BlogapiMovabletypeEndpointTestCase extends DrupalWebTestCase {
 
     $updated_node = node_load($node->nid, NULL, TRUE);
 
-    $this->assertTrue($result && !$updated_node->status, 'Node was unpublished');
+    $this->assertTrue($result && $updated_node->status, 'Node was published');
   }
 
   /**
