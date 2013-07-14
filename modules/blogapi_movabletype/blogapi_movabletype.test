@@ -201,7 +201,117 @@ class BlogapiMovabletypeEndpointTestCase extends DrupalWebTestCase {
    * Test mt.getCategoryList().
    */
   public function testGetCategoryList() {
+    $this->admin_user = $this->drupalCreateUser(array('administer content types', 'administer taxonomy', 'bypass node access', 'administer services'));
+    $this->drupalLogin($this->admin_user);
+    $this->vocabulary = $this->createVocabulary();
+    $type = $this->drupalCreateContentType();
 
+    $field = array(
+      'field_name' => 'taxonomy_' . $this->vocabulary->machine_name,
+      'type' => 'taxonomy_term_reference',
+      'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+      'settings' => array(
+        'allowed_values' => array(
+          array(
+            'vocabulary' => $this->vocabulary->machine_name,
+            'parent' => 0,
+          ),
+        ),
+      ),
+    );
+
+    field_create_field($field);
+
+    $this->instance = array(
+      'field_name' => 'taxonomy_' . $this->vocabulary->machine_name,
+      'bundle' => $type->type,
+      'entity_type' => 'node',
+      'widget' => array(
+        'type' => 'options_select',
+      ),
+      'display' => array(
+        'default' => array(
+          'type' => 'taxonomy_term_reference_link',
+        ),
+      ),
+    );
+
+    field_create_instance($this->instance);
+
+    $terms = array();
+
+    for ($i = 0; $i < 5; $i++) {
+      $terms[] = $this->createTerm($this->vocabulary);
+    }
+
+    $testNode = array(
+      'type' => $type->type,
+      $field['field_name'] => array(
+        LANGUAGE_NONE => array(
+          array(
+            'tid' => $terms[0]->tid
+          )
+        )
+      ),
+      'uid' => $this->privilegedUser2->uid,
+    );
+
+    // Allow to user our content type with BlogAPI
+    variable_set('blogapi_node_types', array($type->type));
+
+    $node = $this->drupalCreateNode($testNode);
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.getCategoryList' => array(
+      ),
+    ));
+
+    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.getCategoryList' => array(
+        $type->type,
+        user_password(10),
+        user_password(10),
+
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
+
+    // Test user without blogAPI permission.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.getCategoryList' => array(
+        $type->type,
+        $this->unPrivilegedUser->name,
+        $this->unPrivilegedUser->pass_raw,
+      )
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
+
+    $results = xmlrpc($this->xmlrpcUrl, array(
+      'mt.getCategoryList' => array(
+        $type->type,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+      )
+    ));
+    
+    $this->assertTrue(is_array($results) && count($results) == count($terms), 'Service returned correct terms number');
+
+    $success = TRUE;
+
+    foreach ($results as $category) {
+      $term = taxonomy_term_load($category['categoryId']);
+      if (empty($term) || $term->name != $category['categoryName']) {
+        $success = FALSE;
+      }
+    }
+
+    $this->assertTrue($success, 'All terms were retrieved properly');
   }
 
   /**
@@ -230,5 +340,38 @@ class BlogapiMovabletypeEndpointTestCase extends DrupalWebTestCase {
    */
   public function testSupportedTextFilters() {
 
+  }
+
+  /**
+   * Returns a new vocabulary with random properties.
+   * @TODO put in parent blogapi.test
+   */
+  function createVocabulary() {
+    // Create a vocabulary.
+    $vocabulary = new stdClass();
+    $vocabulary->name = $this->randomName();
+    $vocabulary->description = $this->randomName();
+    $vocabulary->machine_name = drupal_strtolower($this->randomName());
+    $vocabulary->help = '';
+    $vocabulary->nodes = array('article' => 'article');
+    $vocabulary->weight = mt_rand(0, 10);
+    taxonomy_vocabulary_save($vocabulary);
+
+    return $vocabulary;
+  }
+
+  /**
+   * Returns a new term with random properties in vocabulary $vid.
+   * @TODO put in parent blogapi.test
+   */
+  function createTerm($vocabulary) {
+    $term = new stdClass();
+    $term->name = $this->randomName();
+    $term->description = $this->randomName();
+    // Use the first available text format.
+    $term->format = db_query_range('SELECT format FROM {filter_format}', 0, 1)->fetchField();
+    $term->vid = $vocabulary->vid;
+    taxonomy_term_save($term);
+    return $term;
   }
 }

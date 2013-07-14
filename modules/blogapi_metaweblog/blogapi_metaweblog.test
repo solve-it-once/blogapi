@@ -628,6 +628,7 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
 
   /**
    * Returns a new vocabulary with random properties.
+   * @TODO put in parent blogapi.test
    */
   function createVocabulary() {
     // Create a vocabulary.
@@ -645,6 +646,7 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
 
   /**
    * Returns a new term with random properties in vocabulary $vid.
+   * @TODO put in parent blogapi.test
    */
   function createTerm($vocabulary) {
     $term = new stdClass();
