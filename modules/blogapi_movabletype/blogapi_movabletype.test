@@ -6,7 +6,9 @@
  */
 class BlogapiMovabletypeEndpointTestCase extends DrupalWebTestCase {
   protected $profile = 'testing';
+  protected $blogID;
   protected $privilegedUser;
+  protected $testfile;
   protected $privilegedUser2;
   protected $xmlrpcUrl;
 
@@ -38,15 +40,21 @@ class BlogapiMovabletypeEndpointTestCase extends DrupalWebTestCase {
     $this->xmlrpcUrl = url('blogapi/xmlrpc', array('absolute' => TRUE));
 
     // Create a user with appropriate permissions.
+    $this->unPrivilegedUser = $this->drupalCreateUser(array('access content'));
+    $this->unPrivilegedUser->mail = 'test1@example.com';
+    $this->unPrivilegedUser->name = 'Test user 1';
+    user_save($this->unPrivilegedUser);
+
+    // Create a user with appropriate permissions.
     $this->privilegedUser = $this->drupalCreateUser(array('manage content with blogapi'));
-    $this->privilegedUser->mail = 'test@example.com';
-    $this->privilegedUser->name = 'Test user';
+    $this->privilegedUser->mail = 'test2@example.com';
+    $this->privilegedUser->name = 'Test user 2';
     user_save($this->privilegedUser);
 
     // Create another user with more permissions.
-    $this->privilegedUser2 = $this->drupalCreateUser(array('manage content with blogapi', 'bypass node access'));
-    $this->privilegedUser2->mail = 'test@example.com';
-    $this->privilegedUser2->name = 'Test user2';
+    $this->privilegedUser2 = $this->drupalCreateUser(array('manage content with blogapi', 'bypass node access', 'administer nodes', 'administer taxonomy'));
+    $this->privilegedUser2->mail = 'test3@example.com';
+    $this->privilegedUser2->name = 'Test user 3';
     user_save($this->privilegedUser2);
   }
 
@@ -54,7 +62,55 @@ class BlogapiMovabletypeEndpointTestCase extends DrupalWebTestCase {
    * Test mt.publishPost().
    */
   public function testPublishPost() {
+    $type = $this->drupalCreateContentType();
 
+    // Allow to user our content type with BlogAPI
+    variable_set('blogapi_node_types', array($type->type));
+
+    $node = $this->drupalCreateNode(array('status' => 0, 'type' => $type->type, 'uid' => $this->privilegedUser2->uid));
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.publishPost' => array(
+      ),
+    ));
+
+    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.publishPost' => array(
+        $node->nid,
+        user_password(10),
+        user_password(10),
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
+
+    // Test user without blogAPI permission.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.publishPost' => array(
+        $node->nid,
+        $this->unPrivilegedUser->name,
+        $this->unPrivilegedUser->pass_raw,
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
+
+    // Test user without node view permission.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.publishPost' => array(
+        $node->nid,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+      ),
+    ));
+
+    $updated_node = node_load($node->nid, NULL, TRUE);
+
+    $this->assertTrue($result && !$updated_node->status, 'Node was unpublished');
   }
 
   /**
