@@ -299,7 +299,7 @@ class BlogapiMovabletypeEndpointTestCase extends DrupalWebTestCase {
         $this->privilegedUser2->pass_raw,
       )
     ));
-    
+
     $this->assertTrue(is_array($results) && count($results) == count($terms), 'Service returned correct terms number');
 
     $success = TRUE;
@@ -318,7 +318,130 @@ class BlogapiMovabletypeEndpointTestCase extends DrupalWebTestCase {
    * Test mt.getPostCategories().
    */
   public function testGetPostCategories() {
+    $this->admin_user = $this->drupalCreateUser(array('administer content types', 'administer taxonomy', 'bypass node access', 'administer services'));
+    $this->drupalLogin($this->admin_user);
+    $this->vocabulary = $this->createVocabulary();
+    $type = $this->drupalCreateContentType();
 
+    $field = array(
+      'field_name' => 'taxonomy_' . $this->vocabulary->machine_name,
+      'type' => 'taxonomy_term_reference',
+      'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+      'settings' => array(
+        'allowed_values' => array(
+          array(
+            'vocabulary' => $this->vocabulary->machine_name,
+            'parent' => 0,
+          ),
+        ),
+      ),
+    );
+
+    field_create_field($field);
+
+    $this->instance = array(
+      'field_name' => 'taxonomy_' . $this->vocabulary->machine_name,
+      'bundle' => $type->type,
+      'entity_type' => 'node',
+      'widget' => array(
+        'type' => 'options_select',
+      ),
+      'display' => array(
+        'default' => array(
+          'type' => 'taxonomy_term_reference_link',
+        ),
+      ),
+    );
+
+    field_create_instance($this->instance);
+
+    $terms = array();
+
+    for ($i = 0; $i < 5; $i++) {
+      $terms[] = $this->createTerm($this->vocabulary);
+    }
+
+    $testNode = array(
+      'type' => $type->type,
+      $field['field_name'] => array(
+        LANGUAGE_NONE => array(
+          array(
+            'tid' => $terms[0]->tid
+          ),
+          array(
+            'tid' => $terms[1]->tid
+          )
+        )
+      ),
+      'uid' => $this->privilegedUser2->uid,
+    );
+
+    // Allow to user our content type with BlogAPI
+    variable_set('blogapi_node_types', array($type->type));
+
+    $node = $this->drupalCreateNode($testNode);
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.getPostCategories' => array(
+      ),
+    ));
+
+    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.getPostCategories' => array(
+        $node->nid,
+        user_password(10),
+        user_password(10),
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
+
+    // Test user without blogAPI permission.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.getPostCategories' => array(
+        $node->nid,
+        $this->unPrivilegedUser->name,
+        $this->unPrivilegedUser->pass_raw,
+      )
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
+
+    // Test wrong nid.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.getPostCategories' => array(
+        $node->nid+1,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+      )
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('Node @nid not found', array('@nid' => $node->nid)), t('Node was not found'));
+
+    $results = xmlrpc($this->xmlrpcUrl, array(
+      'mt.getPostCategories' => array(
+        $node->nid,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+      )
+    ));
+
+    $this->assertTrue(is_array($results) && count($results) == count($testNode[$field['field_name']][LANGUAGE_NONE]), 'Service returned correct terms number');
+
+    $success = TRUE;
+
+    foreach ($results as $category) {
+      $term = taxonomy_term_load($category['categoryId']);
+      if (empty($term) || $term->name != $category['categoryName']) {
+        $success = FALSE;
+      }
+    }
+
+    $this->assertTrue($success, 'All terms were retrieved properly');
   }
 
   /**
