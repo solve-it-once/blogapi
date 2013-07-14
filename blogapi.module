@@ -651,30 +651,7 @@ function blogapi_edit_post($postid, $username, $password, $content, $publish) {
     _blogapi_mt_extra($new_node, $content);
   }
 
-  module_invoke_all('blogapi_node_edit', $new_node);
-
-  blogapi_status_error_check($new_node);
-
-  // Load the required includes for drupal_execute
-  module_load_include('inc', 'node', 'node.pages');
-
-  node_object_prepare($old_node);
-
-  // Setup form_state.
-  $form_state = array();
-  $form_state['values'] = (array) $new_node;
-  $form_state['values']['op'] = t('Save');
-  $form_state['node'] = $old_node;
-
-  drupal_form_submit($old_node->type . '_node_form', $form_state, $old_node);
-
-  if ($errors = form_get_errors()) {
-    return services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
-  }
-  else {
-    watchdog('content', '@type: updated %title using Blog API.', array('@type' => $old_node->type, '%title' => $new_node->title), WATCHDOG_NOTICE, l(t('view'), "node/$old_node->nid"));
-    return TRUE;
-  }
+  return blogapi_submit_node($new_node, $old_node);
 }
 
 /**
@@ -717,26 +694,7 @@ function blogapi_new_post($username, $password, $postdata) {
     $node->date = format_date(REQUEST_TIME, 'custom', 'Y-m-d H:i:s O');
   }
 
-  module_invoke_all('blogapi_new_post', $node);
-  blogapi_status_error_check($node);
-
-  // Load the required includes for drupal_execute
-  module_load_include('inc', 'node', 'node.pages');
-
-  // Setup form_state
-  $form_state = array();
-  $form_state['values'] = (array) $node;
-  $form_state['values']['op'] = t('Save');
-
-  drupal_form_submit($node->type . '_node_form', $form_state, $node);
-
-  if ($errors = form_get_errors()) {
-    return services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
-  }
-  else {
-    watchdog('content', '@type: added %title using BlogAPI.', array('@type' => $node->type, '%title' => $node->title), WATCHDOG_NOTICE, l(t('view'), 'node/' . $form_state['nid']));
-    return $form_state['nid'];
-  }
+  return blogapi_submit_node($node, $node);
 }
 
 /**
@@ -842,4 +800,37 @@ function blogapi_get_node_categories($postid, $username, $password) {
   }
 
   return $categories;
+}
+
+function blogapi_submit_node($new_node, $old_node) {
+  $is_new_node = empty($old_node->nid);
+  module_invoke_all('blogapi_node_edit', $new_node);
+
+  blogapi_status_error_check($new_node);
+
+  // Load the required includes for drupal_execute
+  module_load_include('inc', 'node', 'node.pages');
+
+  if (!$is_new_node) {
+    node_object_prepare($old_node);
+  }
+
+  // Setup form_state.
+  $form_state = array();
+  $form_state['values'] = (array) $new_node;
+  $form_state['values']['op'] = t('Save');
+
+  if (!$is_new_node) {
+    $form_state['node'] = $old_node;
+  }
+
+  drupal_form_submit($old_node->type . '_node_form', $form_state, $old_node);
+
+  if ($errors = form_get_errors()) {
+    return services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
+  }
+  else {
+    watchdog('content', '@type: updated %title using Blog API.', array('@type' => $old_node->type, '%title' => $new_node->title), WATCHDOG_NOTICE, l(t('view'), "node/$old_node->nid"));
+    return $is_new_node ? $form_state['nid'] : TRUE;
+  }
 }

@@ -164,7 +164,7 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
     ));
 
     // Load the node and validate the data.
-    $node = node_load($nid[0]);
+    $node = node_load($nid);
     $this->assertEqual($node->title, $node_title, t('New node title is set correctly.'));
     $this->assertEqual($node->body[LANGUAGE_NONE][0]['value'], $node_body, t('New node body is set correctly.'));
     $this->assertEqual($node->status, 1, t('New node is published'));
@@ -261,11 +261,11 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
       )
     ));
 
+
     $new_node = node_load($correct_node->nid, NULL, TRUE);
+
     $this->assertTrue($result && $new_node->title != $correct_node->title, 'Node was updated');
-
     $this->assertTrue($new_node->title == $node_title, 'Title was updated');
-
     $this->assertTrue(!empty($new_node->body[LANGUAGE_NONE][0]['value']) && $new_node->body[LANGUAGE_NONE][0]['value'] == $node_body, 'Body was updated');
   }
 
