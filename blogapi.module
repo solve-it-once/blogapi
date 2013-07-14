@@ -715,3 +715,54 @@ function blogapi_new_post($username, $password, $postdata) {
     return $form_state['nid'];
   }
 }
+
+/**
+ * Get vocabularies which are available as taxonomy_term_reference field in given content type.
+ */
+function blogapi_get_vocabularies_per_content_type($type) {
+  $vocabularies = array();
+
+  foreach (field_info_fields() as $field) {
+    if ($field['type'] == 'taxonomy_term_reference' && is_array($field['bundles']['node'])) {
+      foreach ($field['bundles']['node'] as $content_type) {
+        if ($content_type == $type) {
+          foreach ($field['settings']['allowed_values'] as $value) {
+            $vocabularies[] = $value['vocabulary'];
+          }
+        }
+      }
+    }
+  }
+
+  // Return only unique items, because bundle can have some taxonomy reference fields with the same vocabulary
+  return array_unique($vocabularies);
+}
+
+/**
+ * Service callback for metaWeblog.getCategories
+ * @TODO simplify this callback if possible
+ */
+function blogapi_get_categories($blogid, $username, $password) {
+  // Validate the user.
+  blogapi_validate_user($username, $password);
+
+  if (($error = blogapi_validate_content_type($blogid)) !== TRUE) {
+    // Return an error if not configured type.
+    return services_error($error['message'], $error['error_code']);
+  }
+
+  $categories = array();
+  $vocabularies = blogapi_get_vocabularies_per_content_type($blogid);
+
+  if (!empty($vocabularies)) {
+    foreach ($vocabularies as $vocabulary_machine_name) {
+      $vocabulary = taxonomy_vocabulary_machine_name_load($vocabulary_machine_name);
+      $terms = taxonomy_get_tree($vocabulary->vid);
+      foreach ($terms as $term) {
+        $categories[] = array('categoryName' => $term->name, 'categoryId' => $term->tid);
+      }
+    }
+  }
+
+  return $categories;
+}

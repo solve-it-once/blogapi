@@ -402,28 +402,7 @@ function blogapi_metaweblog_new_media_object($blogid, $username, $password, $fil
  * @TODO simplify this callback
  */
 function blogapi_metaweblog_get_categories($blogid, $username, $password) {
-  // Validate the user.
-  blogapi_validate_user($username, $password);
-
-  if (($error = blogapi_validate_content_type($blogid)) !== TRUE) {
-    // Return an error if not configured type.
-    return services_error($error['message'], $error['error_code']);
-  }
-
-  $categories = array();
-  $vocabularies = blogapi_metaweblog_get_vocabularies_per_content_type($blogid);
-
-  if (!empty($vocabularies)) {
-    foreach ($vocabularies as $vocabulary_machine_name) {
-      $vocabulary = taxonomy_vocabulary_machine_name_load($vocabulary_machine_name);
-      $terms = taxonomy_get_tree($vocabulary->vid);
-      foreach ($terms as $term) {
-        $categories[] = array('categoryName' => $term->name, 'categoryId' => $term->tid);
-      }
-    }
-  }
-
-  return $categories;
+  return blogapi_get_categories($blogid, $username, $password);
 }
 
 /**
@@ -451,23 +430,4 @@ function blogapi_metaweblog_get_recent_posts($blogid, $username, $password, $num
   }
 
   return $posts;
-}
-
-function blogapi_metaweblog_get_vocabularies_per_content_type($type) {
-  $vocabularies = array();
-
-  foreach (field_info_fields() as $field) {
-    if ($field['type'] == 'taxonomy_term_reference' && is_array($field['bundles']['node'])) {
-      foreach ($field['bundles']['node'] as $content_type) {
-        if ($content_type == $type) {
-          foreach ($field['settings']['allowed_values'] as $value) {
-            $vocabularies[] = $value['vocabulary'];
-          }
-        }
-      }
-    }
-  }
-
-  // Return only unique items, because bundle can have some taxonomy reference fields with the same vocabulary
-  return array_unique($vocabularies);
 }
