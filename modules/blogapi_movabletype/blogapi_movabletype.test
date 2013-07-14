@@ -455,14 +455,30 @@ class BlogapiMovabletypeEndpointTestCase extends DrupalWebTestCase {
    * Test mt.supportedMethods().
    */
   public function testSupportedMethods() {
+    $results = xmlrpc($this->xmlrpcUrl, array(
+      'mt.supportedMethods' => array(
+      )
+    ));
 
+    $this->assertEqual(xmlrpc_error_msg(), t('Not implemented'), 'mt.supportedMethods is not implemented');
   }
 
   /**
    * Test mt.supportedTextFilters().
    */
   public function testSupportedTextFilters() {
+    // Add a text format with minimum data only.
+    $format = new stdClass();
+    $format->format = user_password(20);
+    $format->name = user_password(20);
+    filter_format_save($format);
 
+    $results = xmlrpc($this->xmlrpcUrl, array(
+      'mt.supportedTextFilters' => array(
+      )
+    ));
+
+    $this->assertTrue(!empty($results) && $results[0] == array('key' => $format->format, 'label' => $format->name), 'Created format was retreived');
   }
 
   /**
