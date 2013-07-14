@@ -117,7 +117,84 @@ class BlogapiMovabletypeEndpointTestCase extends DrupalWebTestCase {
    * Test mt.getRecentPostTitles().
    */
   public function testGetRecentPostTitles() {
+    $type = $this->drupalCreateContentType();
+    $number_of_posts = 9;
+    $nodes = array();
 
+    for ($i = 0; $i < 11; $i++) {
+      $node = $this->drupalCreateNode(array('type' => $type->type, 'uid' => $this->privilegedUser2->uid));
+      $nodes[$node->nid] = $node;
+    }
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.getRecentPostTitles' => array(
+      ),
+    ));
+
+    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
+
+    // Test authantication with random username/password
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.getRecentPostTitles' => array(
+        $type->type,
+        user_password(10),
+        user_password(10),
+        $number_of_posts,
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
+
+    // Test user without blogAPI permission.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.getRecentPostTitles' => array(
+        $type->type,
+        $this->unPrivilegedUser->name,
+        $this->unPrivilegedUser->pass_raw,
+        $number_of_posts,
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
+
+    // Test user without node view permission.
+    $result = xmlrpc($this->xmlrpcUrl, array(
+      'mt.getRecentPostTitles' => array(
+        $type->type,
+        $this->privilegedUser->name,
+        $this->privilegedUser->pass_raw,
+        $number_of_posts,
+      ),
+    ));
+
+    $this->assertEqual(xmlrpc_error_msg(), t('BlogAPI is not configured to support the @type content type.', array('@type' => $type->type)),
+      $type->type . ' is not allowed for BlogAPI yet.');
+
+    // Allow to user our content type with BlogAPI
+    variable_set('blogapi_node_types', array($type->type));
+
+    $results = xmlrpc($this->xmlrpcUrl, array(
+      'mt.getRecentPostTitles' => array(
+        $type->type,
+        $this->privilegedUser2->name,
+        $this->privilegedUser2->pass_raw,
+        $number_of_posts,
+      )
+    ));
+
+    $this->assertTrue(is_array($results) && count($results) == $number_of_posts, 'Service returned correct posts number');
+    $success = TRUE;
+
+    foreach ($results as $post) {
+      $node = node_load($post['postid']);
+
+      if (empty($node) || $node->title != $nodes[$post['postid']]->title) {
+        $success = FALSE;
+      }
+    }
+
+    $this->assertTrue($success, 'All nodes were retrieved properly');
   }
 
   /**
