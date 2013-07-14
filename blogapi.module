@@ -739,6 +739,23 @@ function blogapi_get_vocabularies_per_content_type($type) {
 }
 
 /**
+ * Get vocabularies which are available as taxonomy_term_reference field in given content type.
+ */
+function blogapi_get_node_taxonomy_term_fields($nid) {
+  $fields = array();
+  $node = node_load($nid);
+
+  foreach (field_info_fields() as $field) {
+    if ($field['type'] == 'taxonomy_term_reference' && is_array($field['bundles']['node'])
+      && in_array($node->type, $field['bundles']['node'])) {
+        $fields[] = $field['field_name'];
+    }
+  }
+
+  return $fields;
+}
+
+/**
  * Service callback for metaWeblog.getCategories
  * @TODO simplify this callback if possible
  */
@@ -760,6 +777,43 @@ function blogapi_get_categories($blogid, $username, $password) {
       $terms = taxonomy_get_tree($vocabulary->vid);
       foreach ($terms as $term) {
         $categories[] = array('categoryName' => $term->name, 'categoryId' => $term->tid);
+      }
+    }
+  }
+
+  return $categories;
+}
+
+/**
+ * Service callback for metaWeblog.getCategories
+ * @TODO simplify this callback if possible
+ */
+function blogapi_get_node_categories($postid, $username, $password) {
+  // Validate the user.
+  blogapi_validate_user($username, $password);
+
+  $node = node_load($postid);
+
+  if (!$node) {
+    return services_error(t('Node @nid not found', array('@nid' => $postid)), 404);
+  }
+
+  if (!node_access('view', $node, $user) || !user_access('administer nodes')) {
+    // User does not have permission to view the node.
+    return services_error(t('You are not authorized to view post @postid', array('@postid' => $postid)), 403);
+  }
+
+  $taxonomy_fields = blogapi_get_node_taxonomy_term_fields($node->nid);
+  $categories = array();
+
+  if (!empty($taxonomy_fields)) {
+    foreach ($taxonomy_fields as $field) {
+      $terms = field_get_items('node', $node, $field);
+      if (!empty($terms)) {
+        foreach ($terms as $term) {
+          $term = taxonomy_term_load($term['tid']);
+          $categories[] = array('categoryName' => $term->name, 'categoryId' => $term->tid, 'isPrimary' => TRUE);
+        }
       }
     }
   }
