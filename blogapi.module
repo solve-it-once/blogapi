@@ -437,12 +437,7 @@ function blogapi_get_recent_posts($blogid, $username, $password, $number_of_post
   $user = blogapi_validate_user($username, $password);
 
   // Validate the content type.
-  $error = blogapi_validate_content_type($blogid);
-  if ($error !== TRUE) {
-    // Return an error if the content type is not configured for use
-    // with BlogAPI.
-    return services_error($error['message'], $error['error_code']);
-  }
+  blogapi_validate_content_type($blogid);
 
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'node')
@@ -489,11 +484,7 @@ function blogapi_validate_content_type($content_type) {
     return TRUE;
   }
 
-  $error_data = array(
-    'message' => t('BlogAPI is not configured to support the @type content type.', array('@type' => $content_type)),
-    'error_code' => 403,
-  );
-  return $error_data;
+  return services_error(t('BlogAPI is not configured to support the @type content type.', array('@type' => $content_type)), 403);
 }
 
 /**
@@ -689,10 +680,7 @@ function blogapi_new_post($username, $password, $postdata) {
     return services_error(t('You do not have permission to create this type of post.'), 403);
   }
 
-  if (($error = blogapi_validate_content_type($postdata['type'])) !== TRUE) {
-    // Return an error if not configured type.
-    return services_error($error['message'], $error['error_code']);
-  }
+  blogapi_validate_content_type($postdata['type']);
 
   // @todo make more beautiful reassigning
   // Get the node type defaults.
@@ -768,10 +756,7 @@ function blogapi_get_categories($blogid, $username, $password) {
   // Validate the user.
   blogapi_validate_user($username, $password);
 
-  if (($error = blogapi_validate_content_type($blogid)) !== TRUE) {
-    // Return an error if not configured type.
-    return services_error($error['message'], $error['error_code']);
-  }
+  blogapi_validate_content_type($blogid);
 
   $categories = array();
   $vocabularies = blogapi_get_vocabularies_per_content_type($blogid);
