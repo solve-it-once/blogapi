@@ -414,13 +414,13 @@ class BlogapiMovabletypeEndpointTestCase extends DrupalWebTestCase {
     // Test wrong nid.
     $result = xmlrpc($this->xmlrpcUrl, array(
       'mt.getPostCategories' => array(
-        $node->nid+1,
+        0,
         $this->privilegedUser2->name,
         $this->privilegedUser2->pass_raw,
       )
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('Node @nid not found', array('@nid' => $node->nid)), t('Node was not found'));
+    $this->assertEqual(xmlrpc_error_msg(), t('Node @nid not found', array('@nid' => 0)), t('Node was not found'));
 
     $results = xmlrpc($this->xmlrpcUrl, array(
       'mt.getPostCategories' => array(
