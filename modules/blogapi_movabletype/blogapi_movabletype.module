@@ -214,7 +214,7 @@ function blogapi_movabletype_services_resources() {
  */
 function blogapi_movabletype_publish_post($postid, $username, $password) {
   // Validate the user.
-  $user = blogapi_validate_user($username, $password);
+  blogapi_validate_user($username, $password);
 
   $node = node_load($postid);
   if (!$node) {
@@ -223,16 +223,14 @@ function blogapi_movabletype_publish_post($postid, $username, $password) {
 
   // Nothing needs to be done: the node is already published.
   if ($node->status == 1) {
-    return;
+    return TRUE;
   }
 
-  if (!node_access('update', $node, $user) || !user_access('administer nodes')) {
-    // User does not have permission to update the node.
-    return services_error(t('You are not authorized to update post @postid', array('@postid' => $postid)), 403);
-  }
-
-  // If everything checks out, then go ahead and update the node.
   $node->status = 1;
+
+  // Check if current user have permissions to change node status
+  blogapi_status_error_check($node);
+
   node_save($node);
 
   return TRUE;
