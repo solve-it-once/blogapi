@@ -4,14 +4,7 @@
  * @file
  * Endpoint tests for BlogAPI Metaweblog
  */
-class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
-  protected $profile = 'testing';
-  protected $blogID;
-  protected $privilegedUser;
-  protected $testfile;
-  protected $privilegedUser2;
-  protected $xmlrpcUrl;
-
+class BlogapiMetaweblogEndpointTestCase extends BlogapiTestCase {
   /**
    * Test info.
    */
@@ -27,35 +20,7 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
    * Set up test.
    */
   public function setUp() {
-    parent::setUp(array(
-      'blogapi',
-      'blogapi_metaweblog',
-      'filter',
-      'services',
-      'taxonomy',
-      'xmlrpc_server',
-    ));
-
-    // Get the URL of the XML-RPC endpoint.
-    $this->xmlrpcUrl = url('blogapi/xmlrpc', array('absolute' => TRUE));
-
-    // Create a user with appropriate permissions.
-    $this->unPrivilegedUser = $this->drupalCreateUser(array('access content'));
-    $this->unPrivilegedUser->mail = 'test1@example.com';
-    $this->unPrivilegedUser->name = 'Test user 1';
-    user_save($this->unPrivilegedUser);
-
-    // Create a user with appropriate permissions.
-    $this->privilegedUser = $this->drupalCreateUser(array('manage content with blogapi'));
-    $this->privilegedUser->mail = 'test2@example.com';
-    $this->privilegedUser->name = 'Test user 2';
-    user_save($this->privilegedUser);
-
-    // Create another user with more permissions.
-    $this->privilegedUser2 = $this->drupalCreateUser(array('manage content with blogapi', 'bypass node access', 'administer nodes', 'administer taxonomy'));
-    $this->privilegedUser2->mail = 'test3@example.com';
-    $this->privilegedUser2->name = 'Test user 3';
-    user_save($this->privilegedUser2);
+    parent::setUp('blogapi_metaweblog');
   }
 
   /**
@@ -67,41 +32,6 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
     $node_body = user_password(20);
     $content = array('title' => $node_title, 'description' => $node_body);
     $missed_type = '_arcticle';
-
-    // Test authantication with random username/password
-    $nid = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.newPost' => array(
-        '1234567890',
-      ),
-    ));
-
-    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
-
-    // Test authantication with random username/password
-    $nid = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.newPost' => array(
-        $missed_type,
-        user_password(10),
-        user_password(10),
-        $content,
-        TRUE
-      ),
-    ));
-
-    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
-
-    // Test user without blogAPI permission.
-    $nid = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.newPost' => array(
-        $missed_type,
-        $this->unPrivilegedUser->name,
-        $this->unPrivilegedUser->pass_raw,
-        $content,
-        TRUE
-      ),
-    ));
-
-    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
 
     // Try to create the node. This should fail because the user does not have
     // permission to create this content type.
@@ -174,14 +104,6 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
    * Test metaWeblog.editPost().
    */
   public function testEditPost() {
-    // Test authantication with random username/password
-    $blog_types = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.editPost' => array(
-      ),
-    ));
-
-    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
-
     // Prepare data for nodes
     $node_title = user_password(10);
     $node_body = user_password(20);
@@ -194,33 +116,6 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
 
     $wrong_node = $this->drupalCreateNode(array('type' => $disallowed_type->type));
     $correct_node = $this->drupalCreateNode(array('type' => $allowed_type->type, 'title' => $node_title, 'body' => array(LANGUAGE_NONE => array(array('value' => $node_body)))));
-
-    // Test authantication with random username/password
-    $blog_types = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.editPost' => array(
-        $correct_node->nid,
-        user_password(10),
-        user_password(10),
-        $content,
-        TRUE
-      ),
-    ));
-
-    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
-
-
-    // Test user without blogAPI permission.
-    $blog_types = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.editPost' => array(
-        $correct_node->nid,
-        $this->unPrivilegedUser->name,
-        $this->unPrivilegedUser->pass_raw,
-        $content,
-        TRUE
-      ),
-    ));
-
-    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
 
     // Test edit unexisting node
     $nid = xmlrpc($this->xmlrpcUrl, array(
@@ -280,36 +175,6 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
 
     $node = $this->drupalCreateNode(array('type' => $type->type, 'uid' => $this->privilegedUser2->uid));
 
-    // Test authantication with random username/password
-    $result = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.getPost' => array(
-      ),
-    ));
-
-    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
-
-    // Test authantication with random username/password
-    $result = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.getPost' => array(
-        $node->nid,
-        user_password(10),
-        user_password(10),
-      ),
-    ));
-
-    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
-
-    // Test user without blogAPI permission.
-    $result = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.getPost' => array(
-        $node->nid,
-        $this->unPrivilegedUser->name,
-        $this->unPrivilegedUser->pass_raw,
-      ),
-    ));
-
-    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
-
     // Test user without node view permission.
     $result = xmlrpc($this->xmlrpcUrl, array(
       'metaWeblog.getPost' => array(
@@ -353,49 +218,9 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
 
     $node = $this->drupalCreateNode(array('type' => $type->type, 'uid' => $this->privilegedUser2->uid));
 
-    // Test authantication with random username/password
-    $result = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.newMediaObject' => array(
-      ),
-    ));
-
-    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
-
-    // Test authantication with random username/password
     $result = xmlrpc($this->xmlrpcUrl, array(
       'metaWeblog.newMediaObject' => array(
         $type->type,
-        user_password(10),
-        user_password(10),
-        array(
-          'name' => $this->testfile->filename,
-          'type' => mime_content_type(file_create_url($this->testfile->uri)),
-          'bits' => base64_encode(file_get_contents(file_create_url($this->testfile->uri))),
-        ),
-      ),
-    ));
-
-    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
-
-    // Test user without blogAPI permission.
-    $result = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.newMediaObject' => array(
-        $type->type,
-        user_password(10),
-        user_password(10),
-        array(
-          'name' => $this->testfile->filename,
-          'type' => mime_content_type(file_create_url($this->testfile->uri)),
-          'bits' => base64_encode(file_get_contents(file_create_url($this->testfile->uri))),
-        ),
-      ),
-    ));
-
-    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
-
-    $result = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.newMediaObject' => array(
-        $this->blogID,
         $this->privilegedUser2->name,
         $this->privilegedUser2->pass_raw,
         array(
@@ -473,37 +298,6 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
 
     $node = $this->drupalCreateNode($testNode);
 
-    // Test authantication with random username/password
-    $result = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.newMediaObject' => array(
-      ),
-    ));
-
-    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
-
-    // Test authantication with random username/password
-    $result = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.getCategories' => array(
-        $type->type,
-        user_password(10),
-        user_password(10),
-
-      ),
-    ));
-
-    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
-
-    // Test user without blogAPI permission.
-    $result = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.getCategories' => array(
-        $type->type,
-        $this->unPrivilegedUser->name,
-        $this->unPrivilegedUser->pass_raw,
-      )
-    ));
-
-    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
-
     $results = xmlrpc($this->xmlrpcUrl, array(
       'metaWeblog.getCategories' => array(
         $type->type,
@@ -538,38 +332,6 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
       $node = $this->drupalCreateNode(array('type' => $type->type, 'uid' => $this->privilegedUser2->uid));
       $nodes[$node->nid] = $node;
     }
-
-    // Test authantication with random username/password
-    $result = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.getRecentPosts' => array(
-      ),
-    ));
-
-    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
-
-    // Test authantication with random username/password
-    $result = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.getRecentPosts' => array(
-        $type->type,
-        user_password(10),
-        user_password(10),
-        $number_of_posts,
-      ),
-    ));
-
-    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
-
-    // Test user without blogAPI permission.
-    $result = xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.getRecentPosts' => array(
-        $type->type,
-        $this->unPrivilegedUser->name,
-        $this->unPrivilegedUser->pass_raw,
-        $number_of_posts,
-      ),
-    ));
-
-    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
 
     // Test user without node view permission.
     $result = xmlrpc($this->xmlrpcUrl, array(
@@ -609,53 +371,5 @@ class BlogapiMetaweblogEndpointTestCase extends DrupalWebTestCase {
     }
 
     $this->assertTrue($success, 'All nodes were retrieved properly');
-  }
-
-  protected function createPostViaxmlrpc($title, $body, $status = 1) {
-    return xmlrpc($this->xmlrpcUrl, array(
-      'metaWeblog.newPost' => array(
-        $this->blogID,
-        $this->privilegedUser2->name,
-        $this->privilegedUser2->pass_raw,
-        array(
-          'title' => $title,
-          'description' => $body,
-        ),
-        $status
-      )
-    ));
-  }
-
-  /**
-   * Returns a new vocabulary with random properties.
-   * @TODO put in parent blogapi.test
-   */
-  function createVocabulary() {
-    // Create a vocabulary.
-    $vocabulary = new stdClass();
-    $vocabulary->name = $this->randomName();
-    $vocabulary->description = $this->randomName();
-    $vocabulary->machine_name = drupal_strtolower($this->randomName());
-    $vocabulary->help = '';
-    $vocabulary->nodes = array('article' => 'article');
-    $vocabulary->weight = mt_rand(0, 10);
-    taxonomy_vocabulary_save($vocabulary);
-
-    return $vocabulary;
-  }
-
-  /**
-   * Returns a new term with random properties in vocabulary $vid.
-   * @TODO put in parent blogapi.test
-   */
-  function createTerm($vocabulary) {
-    $term = new stdClass();
-    $term->name = $this->randomName();
-    $term->description = $this->randomName();
-    // Use the first available text format.
-    $term->format = db_query_range('SELECT format FROM {filter_format}', 0, 1)->fetchField();
-    $term->vid = $vocabulary->vid;
-    taxonomy_term_save($term);
-    return $term;
   }
 }
