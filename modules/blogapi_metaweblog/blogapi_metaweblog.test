@@ -46,7 +46,7 @@ class BlogapiMetaweblogEndpointTestCase extends BlogapiTestCase {
     ));
 
     $this->assertEqual(xmlrpc_error_msg(), 'You do not have permission to create this type of post.',
-      t('Node access is being respected.'));
+      'Node access is being respected.');
 
 
     // Try to create the node. This should fail because the user does not have
@@ -61,7 +61,7 @@ class BlogapiMetaweblogEndpointTestCase extends BlogapiTestCase {
       ),
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('BlogAPI is not configured to support the @type content type.', array('@type' => $missed_type)),
+    $this->assertEqual(xmlrpc_error_msg(), format_string('BlogAPI is not configured to support the @type content type.', array('@type' => $missed_type)),
       $missed_type . ' type is missed.');
 
     // Create a content type.
@@ -77,8 +77,8 @@ class BlogapiMetaweblogEndpointTestCase extends BlogapiTestCase {
       ),
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('BlogAPI is not configured to support the @type content type.', array('@type' => $type->type)),
-      $type->type . ' is not allowed for BlogAPI yet.');
+    $this->assertEqual(xmlrpc_error_msg(), format_string('BlogAPI is not configured to support the @type content type.',
+        array('@type' => $type->type)), $type->type . ' is not allowed for BlogAPI yet.');
 
     // Allow to user our content type with BlogAPI
     variable_set('blogapi_node_types', array($type->type));
@@ -95,9 +95,9 @@ class BlogapiMetaweblogEndpointTestCase extends BlogapiTestCase {
 
     // Load the node and validate the data.
     $node = node_load($nid);
-    $this->assertEqual($node->title, $node_title, t('New node title is set correctly.'));
-    $this->assertEqual($node->body[LANGUAGE_NONE][0]['value'], $node_body, t('New node body is set correctly.'));
-    $this->assertEqual($node->status, 1, t('New node is published'));
+    $this->assertEqual($node->title, $node_title, 'New node title is set correctly.');
+    $this->assertEqual($node->body[LANGUAGE_NONE][0]['value'], $node_body, 'New node body is set correctly.');
+    $this->assertEqual($node->status, 1, 'New node is published');
   }
 
   /**
@@ -115,7 +115,8 @@ class BlogapiMetaweblogEndpointTestCase extends BlogapiTestCase {
     variable_set('blogapi_node_types', array($allowed_type->type));
 
     $wrong_node = $this->drupalCreateNode(array('type' => $disallowed_type->type));
-    $correct_node = $this->drupalCreateNode(array('type' => $allowed_type->type, 'title' => $node_title, 'body' => array(LANGUAGE_NONE => array(array('value' => $node_body)))));
+    $correct_node = $this->drupalCreateNode(array('type' => $allowed_type->type, 'title' => $node_title,
+      'body' => array(LANGUAGE_NONE => array(array('value' => $node_body)))));
 
     // Test edit unexisting node
     $nid = xmlrpc($this->xmlrpcUrl, array(
@@ -128,7 +129,7 @@ class BlogapiMetaweblogEndpointTestCase extends BlogapiTestCase {
       ),
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('Node @nid not found', array('@nid' => 0)), t('Not found error returned'));// Test edit unexisting node
+    $this->assertEqual(xmlrpc_error_msg(), format_string('Node @nid not found', array('@nid' => 0)), 'Not found error returned');
 
     // Try to update node with unprevileged user
     $nid = xmlrpc($this->xmlrpcUrl, array(
@@ -141,7 +142,7 @@ class BlogapiMetaweblogEndpointTestCase extends BlogapiTestCase {
       ),
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to update this post.'), t('User must have node edit permissions'));
+    $this->assertEqual(xmlrpc_error_msg(), 'You do not have permission to update this post.', 'User must have node edit permissions');
 
     $node_title .= ' modified title';
     $node_body .= ' modified body';
@@ -161,7 +162,8 @@ class BlogapiMetaweblogEndpointTestCase extends BlogapiTestCase {
 
     $this->assertTrue($result && $new_node->title != $correct_node->title, 'Node was updated');
     $this->assertTrue($new_node->title == $node_title, 'Title was updated');
-    $this->assertTrue(!empty($new_node->body[LANGUAGE_NONE][0]['value']) && $new_node->body[LANGUAGE_NONE][0]['value'] == $node_body, 'Body was updated');
+    $this->assertTrue(!empty($new_node->body[LANGUAGE_NONE][0]['value'])
+      && $new_node->body[LANGUAGE_NONE][0]['value'] == $node_body, 'Body was updated');
   }
 
   /**
@@ -184,7 +186,8 @@ class BlogapiMetaweblogEndpointTestCase extends BlogapiTestCase {
       ),
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('You are not authorized to view post @postid', array('@postid' => $node->nid)), t('User must node view permissions'));
+    $this->assertEqual(xmlrpc_error_msg(), format_string('You are not authorized to view post @postid',
+      array('@postid' => $node->nid)), 'User must node view permissions');
 
     // Normal test
     $result = xmlrpc($this->xmlrpcUrl, array(
@@ -238,7 +241,12 @@ class BlogapiMetaweblogEndpointTestCase extends BlogapiTestCase {
    * Test metaWeblog.getCategories().
    */
   public function testGetCategories() {
-    $this->admin_user = $this->drupalCreateUser(array('administer content types', 'administer taxonomy', 'bypass node access', 'administer services'));
+    $this->admin_user = $this->drupalCreateUser(array(
+      'administer content types',
+      'administer taxonomy',
+      'bypass node access',
+      'administer services'
+    ));
     $this->drupalLogin($this->admin_user);
     $this->vocabulary = $this->createVocabulary();
     $type = $this->drupalCreateContentType();
@@ -343,8 +351,8 @@ class BlogapiMetaweblogEndpointTestCase extends BlogapiTestCase {
       ),
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('BlogAPI is not configured to support the @type content type.', array('@type' => $type->type)),
-      $type->type . ' is not allowed for BlogAPI yet.');
+    $this->assertEqual(xmlrpc_error_msg(), format_string('BlogAPI is not configured to support the @type content type.',
+        array('@type' => $type->type)), $type->type . ' is not allowed for BlogAPI yet.');
 
     // Allow to user our content type with BlogAPI
     variable_set('blogapi_node_types', array($type->type));
@@ -365,7 +373,8 @@ class BlogapiMetaweblogEndpointTestCase extends BlogapiTestCase {
       $node = node_load($post['postid']);
 
       if (empty($node) || $node->title != $nodes[$post['postid']]->title
-        || (!empty($node->body[LANGUAGE_NONE][0]['value']) && $node->body[LANGUAGE_NONE][0]['value'] != $nodes[$post['postid']]->body[LANGUAGE_NONE][0]['value'])) {
+        || (!empty($node->body[LANGUAGE_NONE][0]['value'])
+          && $node->body[LANGUAGE_NONE][0]['value'] != $nodes[$post['postid']]->body[LANGUAGE_NONE][0]['value'])) {
         $success = FALSE;
       }
     }

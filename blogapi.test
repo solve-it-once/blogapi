@@ -67,7 +67,7 @@ class BlogapiTestCase extends DrupalWebTestCase {
       ),
     ));
 
-    $this->assertTrue(strpos(xmlrpc_error_msg(), t('Missing required argument')) !== FALSE, t('Needs corect arguments'));
+    $this->assertTrue(strpos(xmlrpc_error_msg(), 'Missing required argument') !== FALSE, 'Needs corect arguments');
 
     // Test authantication with wrong username/password
     $blog_types = xmlrpc($this->xmlrpcUrl, array(
@@ -78,7 +78,7 @@ class BlogapiTestCase extends DrupalWebTestCase {
       ),
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('Invalid username or password'), t('Access only for logged in users'));
+    $this->assertEqual(xmlrpc_error_msg(), 'Invalid username or password', 'Access only for logged in users');
 
     // Test user without blogAPI permission.
     $blog_types = xmlrpc($this->xmlrpcUrl, array(
@@ -89,7 +89,7 @@ class BlogapiTestCase extends DrupalWebTestCase {
       ),
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('You do not have permission to edit this blog'), t('User must have blogAPI permissions'));
+    $this->assertEqual(xmlrpc_error_msg(), 'You do not have permission to edit this blog', 'User must have blogAPI permissions');
 
     // Restrict all content types, because article is allowed by default
     variable_set('blogapi_node_types', array());
@@ -103,7 +103,7 @@ class BlogapiTestCase extends DrupalWebTestCase {
       ),
     ));
 
-    $this->assertEqual(count($blog_types), 0, t('No blog types exist and none were returned'));
+    $this->assertEqual(count($blog_types), 0, 'No blog types exist and none were returned');
 
     // Create a content type and re-test. No types should be returned
     // because the content type is not configured for use with BlogAPI.
@@ -117,7 +117,7 @@ class BlogapiTestCase extends DrupalWebTestCase {
       ),
     ));
 
-    $this->assertEqual(count($blog_types), 0, t('No blog types are configured and none were returned'));
+    $this->assertEqual(count($blog_types), 0, 'No blog types are configured and none were returned');
 
     // Add the new content type to the blog list and make sure that it's
     // returned correctly.
@@ -132,9 +132,9 @@ class BlogapiTestCase extends DrupalWebTestCase {
       ),
     ));
 
-    $this->assertEqual(count($blog_types), 1, t('One blog type is configured and one was returned'));
-    $this->assertEqual($blog_types[0]['blogid'], $type->type, t('The configured blog type is the one that was returned'));
-    $this->assertEqual($blog_types[0]['blogName'], $this->privilegedUser->name . ': ' . $type->name, t('The blogName is returned correctly.'));
+    $this->assertEqual(count($blog_types), 1, 'One blog type is configured and one was returned');
+    $this->assertEqual($blog_types[0]['blogid'], $type->type, 'The configured blog type is the one that was returned');
+    $this->assertEqual($blog_types[0]['blogName'], $this->privilegedUser->name . ': ' . $type->name, 'The blogName is returned correctly.');
   }
 
 

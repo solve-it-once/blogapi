@@ -73,8 +73,8 @@ class BlogapiMovabletypeEndpointTestCase extends BlogapiTestCase {
       ),
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('BlogAPI is not configured to support the @type content type.', array('@type' => $type->type)),
-      $type->type . ' is not allowed for BlogAPI yet.');
+    $this->assertEqual(xmlrpc_error_msg(), format_string('BlogAPI is not configured to support the @type content type.',
+        array('@type' => $type->type)), $type->type . ' is not allowed for BlogAPI yet.');
 
     // Allow to user our content type with BlogAPI
     variable_set('blogapi_node_types', array($type->type));
@@ -106,7 +106,13 @@ class BlogapiMovabletypeEndpointTestCase extends BlogapiTestCase {
    * Test mt.getCategoryList().
    */
   public function testGetCategoryList() {
-    $this->admin_user = $this->drupalCreateUser(array('administer content types', 'administer taxonomy', 'bypass node access', 'administer services'));
+    $this->admin_user = $this->drupalCreateUser(
+      array('administer content types',
+        'administer taxonomy',
+        'bypass node access',
+        'administer services'
+      ));
+
     $this->drupalLogin($this->admin_user);
     $this->vocabulary = $this->createVocabulary();
     $type = $this->drupalCreateContentType();
@@ -192,7 +198,13 @@ class BlogapiMovabletypeEndpointTestCase extends BlogapiTestCase {
    * Test mt.getPostCategories().
    */
   public function testGetPostCategories() {
-    $this->admin_user = $this->drupalCreateUser(array('administer content types', 'administer taxonomy', 'bypass node access', 'administer services'));
+    $this->admin_user = $this->drupalCreateUser(array(
+      'administer content types',
+      'administer taxonomy',
+      'bypass node access',
+      'administer services'
+    ));
+
     $this->drupalLogin($this->admin_user);
     $this->vocabulary = $this->createVocabulary();
     $type = $this->drupalCreateContentType();
@@ -264,7 +276,7 @@ class BlogapiMovabletypeEndpointTestCase extends BlogapiTestCase {
       )
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('Node @nid not found', array('@nid' => 0)), t('Node was not found'));
+    $this->assertEqual(xmlrpc_error_msg(), format_string('Node @nid not found', array('@nid' => 0)), 'Node was not found');
 
     $results = xmlrpc($this->xmlrpcUrl, array(
       'mt.getPostCategories' => array(
@@ -274,7 +286,8 @@ class BlogapiMovabletypeEndpointTestCase extends BlogapiTestCase {
       )
     ));
 
-    $this->assertTrue(is_array($results) && count($results) == count($testNode[$field['field_name']][LANGUAGE_NONE]), 'Service returned correct terms number');
+    $this->assertTrue(is_array($results) && count($results) == count($testNode[$field['field_name']][LANGUAGE_NONE]),
+      'Service returned correct terms number');
 
     $success = TRUE;
 
@@ -292,7 +305,13 @@ class BlogapiMovabletypeEndpointTestCase extends BlogapiTestCase {
    * Test mt.setPostCategories().
    */
   public function testSetPostCategories() {
-    $this->admin_user = $this->drupalCreateUser(array('administer content types', 'administer taxonomy', 'bypass node access', 'administer services'));
+    $this->admin_user = $this->drupalCreateUser(array(
+      'administer content types',
+      'administer taxonomy',
+      'bypass node access',
+      'administer services'
+    ));
+
     $this->drupalLogin($this->admin_user);
     $this->vocabulary = $this->createVocabulary();
     $this->wrongVocabulary = $this->createVocabulary();
@@ -377,7 +396,7 @@ class BlogapiMovabletypeEndpointTestCase extends BlogapiTestCase {
       )
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('Node @nid not found', array('@nid' => 0)), t('Node was not found'));
+    $this->assertEqual(xmlrpc_error_msg(), format_string('Node @nid not found', array('@nid' => 0)), 'Node was not found');
 
     // Test with empty Categories.
     $result = xmlrpc($this->xmlrpcUrl, array(
@@ -389,7 +408,7 @@ class BlogapiMovabletypeEndpointTestCase extends BlogapiTestCase {
       )
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('This post doesn\'t have any category'), t('Categories are required'));
+    $this->assertEqual(xmlrpc_error_msg(), 'This post doesn\'t have any category', 'Categories are required');
 
     // Test wrong tid.
     $result = xmlrpc($this->xmlrpcUrl, array(
@@ -406,7 +425,8 @@ class BlogapiMovabletypeEndpointTestCase extends BlogapiTestCase {
       )
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('@terms are not found', array('@terms' => $wrongTerm->name)), t('Term was not found'));
+    $this->assertEqual(xmlrpc_error_msg(), format_string('@terms are not found', array('@terms' => $wrongTerm->name)),
+      'Term was not found');
 
     // Test taxonomy from wrong vocabulary.
     $result = xmlrpc($this->xmlrpcUrl, array(
@@ -423,7 +443,8 @@ class BlogapiMovabletypeEndpointTestCase extends BlogapiTestCase {
       )
     ));
 
-    $this->assertEqual(xmlrpc_error_msg(), t('@terms can\'be added to this post', array('@terms' => $wrongTerm->name)), t('Term belogs to wrong vocabulary'));
+    $this->assertEqual(xmlrpc_error_msg(), format_string('@terms can\'be added to this post',
+      array('@terms' => $wrongTerm->name)), 'Term belogs to wrong vocabulary');
 
     // Correct test
     $result = xmlrpc($this->xmlrpcUrl, array(
