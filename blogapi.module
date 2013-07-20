@@ -620,9 +620,19 @@ function blogapi_get_node_categories($postid, $username, $password) {
   return $categories;
 }
 
+/**
+ * Emulates node_form submission as services module does
+ *
+ * @param $new_node
+ *  Object, data to be submitted to node_form
+ * @param $old_node
+ *  Object, old node data to be submitted to node_form.
+ *  May be the same as $new_node, if it is node creation
+ * @return bool|mixed
+ *  TRUE if node was updated or $node->nid if $node was created
+ */
 function blogapi_submit_node($new_node, $old_node) {
   $is_new_node = empty($old_node->nid);
-  module_invoke_all('blogapi_node_edit', $new_node);
 
   blogapi_status_error_check($new_node);
 
@@ -631,6 +641,10 @@ function blogapi_submit_node($new_node, $old_node) {
 
   if (!$is_new_node) {
     node_object_prepare($old_node);
+    module_invoke_all('blogapi_node_edit', $new_node);
+  }
+  else {
+    module_invoke_all('blogapi_node_create', $new_node);
   }
 
   // Setup form_state.
