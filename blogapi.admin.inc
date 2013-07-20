@@ -38,21 +38,21 @@ function blogapi_admin_settings_form($form, &$form_state) {
     '#collapsed' => FALSE,
   );
 
-  // Set Taxonomy term reference field for BlogAPI categories
-  $fields = array();
-  foreach (field_info_fields() as $field) {
-    if ($field['type'] == 'taxonomy_term_reference') {
-      $fields[$field['field_name']] = $field['field_name'];
-    }
-  }
-
-  $form['settings_categories']['blogapi_category_field'] = array(
-    '#type' => 'radios',
-    '#title' => t('Taxonomy term field for blog categories'),
-    '#options' => $fields,
-    '#default_value' => variable_get('blogapi_category_field', (!empty($fields['field_tags']) ? 'field_tags' : '')),
-    '#description' => t('This field will be used for storing new terms created by mt.setPostCategories'),
-  );
+//  // Set Taxonomy term reference field for BlogAPI categories
+//  $fields = array();
+//  foreach (field_info_fields() as $field) {
+//    if ($field['type'] == 'taxonomy_term_reference') {
+//      $fields[$field['field_name']] = $field['field_name'];
+//    }
+//  }
+//
+//  $form['settings_categories']['blogapi_category_field'] = array(
+//    '#type' => 'radios',
+//    '#title' => t('Taxonomy term field for blog categories'),
+//    '#options' => $fields,
+//    '#default_value' => variable_get('blogapi_category_field', (!empty($fields['field_tags']) ? 'field_tags' : '')),
+//    '#description' => t('This field will be used for storing new terms created by mt.setPostCategories'),
+//  );
 
   $form['settings_node_types'] = array(
     '#type' => 'fieldset',
