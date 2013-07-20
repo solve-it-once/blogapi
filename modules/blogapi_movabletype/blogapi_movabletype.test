@@ -482,8 +482,8 @@ class BlogapiMovabletypeEndpointTestCase extends BlogapiTestCase {
   public function testSupportedTextFilters() {
     // Add a text format with minimum data only.
     $format = new stdClass();
-    $format->format = user_password(20);
-    $format->name = user_password(20);
+    $format->format = $this->randomString();
+    $format->name = $this->randomString();
     filter_format_save($format);
 
     $results = xmlrpc($this->xmlrpcUrl, array(

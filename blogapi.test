@@ -73,8 +73,8 @@ class BlogapiTestCase extends DrupalWebTestCase {
     $blog_types = xmlrpc($this->xmlrpcUrl, array(
       'blogger.getUsersBlogs' => array(
         '1234567890',
-        user_password(10),
-        user_password(10)
+        $this->randomName(),
+        $this->randomString()
       ),
     ));
 

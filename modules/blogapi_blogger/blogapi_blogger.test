@@ -102,8 +102,8 @@ class BlogapiBloggerEndpointTestCase extends BlogapiTestCase {
    */
   public function testNewPost() {
     // Prepare data for nodes
-    $node_title = user_password(10);
-    $node_body = user_password(20);
+    $node_title = $this->randomString();
+    $node_body = $this->randomString();
     $content = '<title>' . $node_title . '</title>' . $node_body;
     $missed_type = '_arcticle';
 
@@ -183,8 +183,8 @@ class BlogapiBloggerEndpointTestCase extends BlogapiTestCase {
    */
   public function testEditPost() {
     // Prepare data for nodes
-    $node_title = user_password(10);
-    $node_body = user_password(20);
+    $node_title = $this->randomString();
+    $node_body = $this->randomString();
     $content = '<title>' . $node_title . '</title>' . $node_body;
     $allowed_type = $this->drupalCreateContentType();
     $disallowed_type = $this->drupalCreateContentType();
