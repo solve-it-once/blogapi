@@ -6,17 +6,9 @@
  */
 
 /**
- * Implements hook_install().
- */
-function blogapi_install() {
-
-}
-
-/**
  * Implements hook_uninstall().
  */
 function blogapi_uninstall() {
-
   // Remove variables.
   variable_del('blogapi_node_types');
   variable_del('blogapi_extensions_default');
