@@ -145,6 +145,8 @@ __RSD__;
  * Get all BlogAPI information, optionally filtered by API type
  */
 function blogapi_get_info($api_type = NULL) {
+  $api_information = array();
+
   // Invoke hook_blogapi_info().
   foreach (module_implements('blogapi_info') as $k => $module) {
     $info = module_invoke($module, 'blogapi_info');
