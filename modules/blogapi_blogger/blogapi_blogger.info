@@ -1,7 +1,0 @@
-name = Old Blogger Provider for BlogAPI
-description = Provides the Old Blogger API for BlogAPI clients.
-package = Services
-core = 7.x
-dependencies[] = xmlrpc_server
-dependencies[] = blogapi
-files[] = blogapi_blogger.test

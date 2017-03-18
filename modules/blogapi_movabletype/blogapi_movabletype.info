@@ -1,7 +1,0 @@
-name = MovableType Provider for BlogAPI
-description = Provides the MovableType API for BlogAPI clients.
-package = Services
-core = 7.x
-dependencies[] = xmlrpc_server
-dependencies[] = blogapi
-files[] = blogapi_movabletype.test

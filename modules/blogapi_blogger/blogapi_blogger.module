@@ -2,452 +2,272 @@
 
 /**
  * @file
- * Provides Blogger services for BlogAPI
+ */
+
+use Drupal\Core\Url;
+
+/**
+ * @file
+ * Module file for blogapi_blogger.
  */
 
 /**
- * Implements hook_blogapi_info().
+ * Returns implemented methods.
+ *
+ * Implements hook_xmlrpc().
  */
-function blogapi_blogger_blogapi_info() {
-  return array(
-    'api_version' => 2,
-    'type' => 'xmlrpc',
-    'name' => 'Blogger',
-  );
+function blogapi_blogger_xmlrpc() {
+  $manager = \Drupal::service('plugin.manager.blogapi');
+  $plugin = $manager->createInstance('BloggerProvider');
+  return $plugin->getMethods();
 }
 
 /**
- * Implements hook_ctools_plugin_api().
+ * Callback for blogger.deletePost.
+ *
+ * @param $hash
+ *   Unused value.
+ *
+ * @param $nid
+ *   The node ID.
+ *
+ * @param $username
+ *   Drupal username.
+ *
+ * @param $pass
+ *   Drupal password.
+ *
+ * @param $publish
+ *   Boolean Drupal publish status.
+ *
+ * @return bool|object
+ *   BlogAPI response.
  */
-function blogapi_blogger_ctools_plugin_api() {
-  list($module, $api) = func_get_args();
-  if ($module == "services" && $api == "services") {
-    return array("version" => "3");
-  }
+function blogapi_blogger_delete_post($hash, $nid, $username, $pass, $publish) {
+  $communicator = \Drupal::service('service.communicator.blogapi');
+  return $communicator->deletePost($nid, $username, $pass);
 }
 
 /**
- * Implements hook_services_resources().
+ * Callback for blogger.getUsersBlogs.
+ *
+ * @param $hash
+ *   Unused value.
+ *
+ * @param $username
+ *   Drupal username.
+ *
+ * @param $pass
+ *   Drupal password.
+ *
+ * @return array
+ *   Return formatted array of available content types.
  */
-function blogapi_blogger_services_resources() {
-  return array(
-    'blogger' => array(
-      'actions' => array(
-        'getUsersBlogs' => array(
-          'access callback' => 'services_access_menu',
-          'callback' => 'blogapi_blogger_get_users_blogs',
-          'enabled' => 1,
-          'help' => 'Returns a list of blogs to which an author has posting privileges.',
-          'args' => array(
-            array(
-              'name' => 'appid',
-              'type' => 'string',
-              'description' => 'appid',
-              'source' => array('data' => 'appid'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'username',
-              'type' => 'string',
-              'description' => 'A valid username',
-              'source' => array('data' => 'username'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'password',
-              'type' => 'string',
-              'description' => 'A valid password',
-              'source' => array('data' => 'password'),
-              'optional' => FALSE,
-            ),
-          ),
-        ),
-        'getUserInfo' => array(
-          'access callback' => 'services_access_menu',
-          'callback' => 'blogapi_blogger_get_user_info',
-          'enabled' => 1,
-          'help' => 'Returns information about an author in the system.',
-          'args' => array(
-            array(
-              'name' => 'appid',
-              'type' => 'string',
-              'description' => 'appid',
-              'source' => array('data' => 'appid'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'username',
-              'type' => 'string',
-              'description' => 'A valid username',
-              'source' => array('data' => 'username'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'password',
-              'type' => 'string',
-              'description' => 'A valid password',
-              'source' => array('data' => 'password'),
-              'optional' => FALSE,
-            ),
-          ),
-        ),
-        'newPost' => array(
-          'access callback' => 'services_access_menu',
-          'callback' => 'blogapi_blogger_new_post',
-          'enabled' => 1,
-          'help' => 'Creates a new post, and optionally publishes it.',
-          'args' => array(
-            array(
-              'name' => 'appid',
-              'type' => 'string',
-              'description' => 'appid',
-              'source' => array('data' => 'appid'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'blogid',
-              'type' => 'string',
-              'description' => 'blogid',
-              'source' => array('data' => 'blogid'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'username',
-              'type' => 'string',
-              'description' => 'A valid username',
-              'source' => array('data' => 'username'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'password',
-              'type' => 'string',
-              'description' => 'A valid password',
-              'source' => array('data' => 'password'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'content',
-              'type' => 'string',
-              'description' => 'content',
-              'source' => array('data' => 'content'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'publish',
-              'type' => 'boolean',
-              'description' => 'publish',
-              'source' => array('data' => 'publish'),
-              'optional' => FALSE,
-            ),
-          ),
-        ),
-        'editPost' => array(
-          'access callback' => 'services_access_menu',
-          'callback' => 'blogapi_blogger_edit_post',
-          'enabled' => 1,
-          'help' => 'Updates the information about an existing post.',
-          'args' => array(
-            array(
-              'name' => 'appid',
-              'type' => 'string',
-              'description' => 'appid',
-              'source' => array('data' => 'appid'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'postid',
-              'type' => 'string',
-              'description' => 'postid',
-              'source' => array('data' => 'postid'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'username',
-              'type' => 'string',
-              'description' => 'A valid username',
-              'source' => array('data' => 'username'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'password',
-              'type' => 'string',
-              'description' => 'A valid password',
-              'source' => array('data' => 'password'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'content',
-              'type' => 'string',
-              'description' => 'content',
-              'source' => array('data' => 'content'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'publish',
-              'type' => 'boolean',
-              'description' => 'publish',
-              'source' => array('data' => 'publish'),
-              'optional' => FALSE,
-            ),
-          ),
-        ),
-        'getPost' => array(
-          'access callback' => 'services_access_menu',
-          'callback' => 'blogapi_blogger_get_post',
-          'enabled' => 1,
-          'help' => 'Returns information about a specific post.',
-          'args' => array(
-            array(
-              'name' => 'appid',
-              'type' => 'string',
-              'description' => 'appid',
-              'source' => array('data' => 'appid'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'postid',
-              'type' => 'string',
-              'description' => 'postid',
-              'source' => array('data' => 'postid'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'username',
-              'type' => 'string',
-              'description' => 'A valid username',
-              'source' => array('data' => 'username'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'password',
-              'type' => 'string',
-              'description' => 'A valid password',
-              'source' => array('data' => 'password'),
-              'optional' => FALSE,
-            ),
-          ),
-        ),
-        'deletePost' => array(
-          'access callback' => 'services_access_menu',
-          'callback' => 'blogapi_blogger_delete_post',
-          'enabled' => 1,
-          'help' => 'Deletes a post.',
-          'args' => array(
-            array(
-              'name' => 'appid',
-              'type' => 'string',
-              'description' => 'appid',
-              'source' => array('data' => 'appid'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'postid',
-              'type' => 'string',
-              'description' => 'postid',
-              'source' => array('data' => 'postid'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'username',
-              'type' => 'string',
-              'description' => 'A valid username',
-              'source' => array('data' => 'username'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'password',
-              'type' => 'string',
-              'description' => 'A valid password',
-              'source' => array('data' => 'password'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'publish',
-              'type' => 'boolean',
-              'description' => 'publish',
-              'source' => array('data' => 'publish'),
-              'optional' => FALSE,
-            ),
-          ),
-        ),
-        'getRecentPosts' => array(
-          'access callback' => 'services_access_menu',
-          'callback' => 'blogapi_blogger_get_recent_posts',
-          'enabled' => 1,
-          'help' => 'Returns a list of the most recent posts in the system',
-          'args' => array(
-            array(
-              'name' => 'appid',
-              'type' => 'string',
-              'description' => 'appid',
-              'source' => array('data' => 'appid'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'blogid',
-              'type' => 'string',
-              'description' => 'blogid',
-              'source' => array('data' => 'blogid'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'username',
-              'type' => 'string',
-              'description' => 'A valid username',
-              'source' => array('data' => 'username'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'password',
-              'type' => 'string',
-              'description' => 'A valid password',
-              'source' => array('data' => 'password'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'number_of_posts',
-              'type' => 'int',
-              'description' => 'number_of_posts',
-              'source' => array('data' => 'number_of_posts'),
-              'optional' => FALSE,
-            ),
-            array(
-              'name' => 'bodies',
-              'type' => 'boolean',
-              'description' => 'bodies',
-              'source' => array('data' => 'bodies'),
-              'optional' => TRUE,
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-/**
- * Service callback for blogger.getUsersBlogs
- */
-function blogapi_blogger_get_users_blogs($appid, $username, $password) {
-  // Validate the user.
-  $user = blogapi_validate_user($username, $password);
-
-  $types = blogapi_get_node_types();
-  if (empty($types)) {
-    return array();
+function blogapi_blogger_get_users_blogs($hash, $username, $pass) {
+  $communicator = \Drupal::service('service.communicator.blogapi');
+  $user = $communicator->authenticate($username, $pass, TRUE);
+  if (!$user) {
+    return $communicator->returnXmlError($communicator::BLOGAPI_XML_ERROR_AUTH);
   }
 
-  $structs = array();
-  foreach ($types as $type) {
-    $structs[] = array('url' => url('user/' . $user->uid, array('absolute' => TRUE)), 'blogid' => $type, 'blogName' => $user->name . ": " . $type);
+  $content_type = $communicator->blogapiConfig->get('content_types');
+  if (empty($content_type)) {
+    return [];
   }
 
-  return $structs;
-}
-
-/**
- * Service callback for blogger.getUserInfo
- */
-function blogapi_blogger_get_user_info($appid, $username, $password) {
-  // Validate the user.
-  $user = blogapi_validate_user($username, $password);
-
-  // Reload user without services_remove_user_data to get email
-  $user = user_load($user->uid, TRUE);
-
-  // Try to guess the user's first and last name.
-  $name = explode(' ', !empty($user->realname) ? $user->realname : $user->name, 2);
-
-  return array(
-    'userid' => $user->uid,
-    'firstname' => $name[0],
-    'lastname' => !empty($name[1]) ? $name[1] : '',
-    'nickname' => $user->name,
-    'email' => $user->mail,
-    'url' => url('user/' . $user->uid, array('absolute' => TRUE)),
-  );
-}
-
-/**
- * Service callback for blogger.newPost
- */
-function blogapi_blogger_new_post($appid, $blogid, $username, $password, $content, $publish) {
-  $postdata = array(
-    'type' => $blogid,
-    'status' => $publish,
-    'title' => blogapi_blogger_extract_title($content),
-    'body' => blogapi_blogger_extract_body($content),
-  );
-
-  $node_id = blogapi_new_post($username, $password, $postdata);
-
-  if (is_numeric($node_id)) {
-    // If this operation is successful, we're supposed to return a string from
-    // blogger.newPost.
-    return (string)$node_id;
+  $return = [];
+  foreach ($content_type as $type) {
+    if ($type) {
+      $url = Url::fromUri('internal:/user/' . $user->id())->setAbsolute();
+      $return[] = [
+        'url' => $url->toString(),
+        'blogid' => $type,
+        'blogName' => $user->getUsername() . ': ' . $type,
+      ];
+    }
   }
-  else {
-    // Otherwise, there is a problem, so just pass through what we got back from
-    // blogapi_new_post().
-    return $node_id;
-  }
+  return $return;
 }
 
 /**
- * Service callback for blogger.editPost
+ * Callback for blogger.getUserInfo.
+ *
+ * @param $hash
+ *   Unused value.
+ *
+ * @param $username
+ *   Drupal username.
+ *
+ * @param $pass
+ *   Drupal password.
+ *
+ * @return array
+ *   Return formatted array of user info.
  */
-function blogapi_blogger_edit_post($appid, $postid, $username, $password, $content, $publish) {
-  return blogapi_edit_post($postid, $username, $password, $content, $publish);
-}
-
-/**
- * Service callback for blogger.getPost
- */
-function blogapi_blogger_get_post($appid, $postid, $username, $password) {
-  // Validate the user.
-  $user = blogapi_validate_user($username, $password);
-
-  $node = node_load($postid);
-  if (!node_access('view', $node, $user) || !user_access('administer nodes')) {
-    // User does not have permission to view the node.
-    return services_error(t('You are not authorized to view post @postid', array('@postid' => $postid)), 403);
+function blogapi_blogger_get_user_info($hash, $username, $pass) {
+  $communicator = \Drupal::service('service.communicator.blogapi');
+  $user = $communicator->authenticate($username, $pass, TRUE);
+  if (!$user) {
+    return $communicator->returnXmlError($communicator::BLOGAPI_XML_ERROR_AUTH);
   }
 
-  return blogapi_format_post_for_xmlrpc($node, TRUE);
+  $uid = $user->id();
+  $name = $user->getDisplayName();
+  $email = $user->getEmail();
+  $url = Url::fromUri('internal:/user/' . $uid)->setAbsolute();
+  $strings = [];
+  if (is_string($name)) {
+    $strings = explode(' ', $name);
+  }
+
+  return [
+    'userid' => $uid,
+    'firstname' => (isset($strings[0]) ? $strings[0] : $username),
+    'lastname' => (isset($strings[1]) ? $strings[1] : ''),
+    'nickname' => $username,
+    'email' => $email,
+    'url' => $url->toString(),
+  ];
 }
 
 /**
- * Service callback for blogger.deletePost
+ * Callback for blogger.newPost.
+ *
+ * @param $hash
+ *   Unused variable.
+ *
+ * @param $ct
+ *   Content type machine name.
+ *
+ * @param $username
+ *   Drupal username.
+ *
+ * @param $pass
+ *   Drupal password.
+ *
+ * @param $content
+ *   Node contents.
+ *
+ * @param $publish
+ *   Bool variable with publish status.
+ *
+ * @return mixed
+ *   Return a response.
  */
-function blogapi_blogger_delete_post($appid, $postid, $username, $password, $publish) {
-  // Validate the user.
-  blogapi_validate_user($username, $password);
+function blogapi_blogger_new_post($hash, $ct, $username, $pass, $content, $publish) {
+  $communicator = \Drupal::service('service.communicator.blogapi');
+  $data = [
+    'type' => $ct,
+    'publish' => $publish,
+    'title' => blogapi_blogger_get_title($content),
+    'body' => preg_replace('/<title>.*?<\/title>/i', '', $content),
+  ];
 
-  node_delete($postid);
-  return TRUE;
+  return $communicator->newPost($ct, $username, $pass, $data);
 }
 
 /**
- * Service callback for blogger.getRecentPosts
+ * Callback for blogger.editPost.
+ *
+ * @param $hash
+ *   Unused variable.
+ *
+ * @param $nid
+ *   Drupal node ID.
+ *
+ * @param $username
+ *   Drupal username.
+ *
+ * @param $pass
+ *   Drupal password.
+ *
+ * @param $content
+ *   Node contents.
+ *
+ * @param $publish
+ *   Bool variable with publish status.
+ *
+ * @return mixed
+ *   Return a response.
  */
-function blogapi_blogger_get_recent_posts($appkey, $blogid, $username, $password, $number_of_posts, $bodies = TRUE) {
-  return blogapi_get_recent_posts($blogid, $username, $password, $number_of_posts);
+function blogapi_blogger_edit_post($hash, $nid, $username, $pass, $content, $publish) {
+  $communicator = \Drupal::service('service.communicator.blogapi');
+  $formatted = [
+    'title' => blogapi_blogger_get_title($content),
+    'body' => preg_replace('/<title>.*?<\/title>/i', '', $content),
+    'publish' => $publish,
+  ];
+  return $communicator->editPost($nid, $username, $pass, $formatted);
 }
 
 /**
- * Extract the node title from the contents field.
+ * Callback for blogger.editPost.
+ *
+ * @param $hash
+ *   Unused variable.
+ *
+ * @param $nid
+ *   Drupal node ID.
+ *
+ * @param $username
+ *   Drupal username.
+ *
+ * @param $pass
+ *   Drupal password.
+ *
+ * @return mixed
+ *   Return a response.
  */
-function blogapi_blogger_extract_title($contents) {
-  if (preg_match('/<title>(.*?)<\/title>/i', $contents, $title)) {
+function blogapi_blogger_get_post($hash, $nid, $username, $pass) {
+  $communicator = \Drupal::service('service.communicator.blogapi');
+  $node = $communicator->getPost($nid, $username, $pass);
+  if ($communicator->responseIsError($node)) {
+    return $node;
+  }
+  return $communicator->formatXml($node, TRUE);
+}
+
+/**
+ * Callback for blogger.getRecentPosts.
+ *
+ * @param $hash
+ *   Unused variable.
+ *
+ * @param $ct
+ *   Drupal content type.
+ *
+ * @param $username
+ *   Drupal username.
+ *
+ * @param $pass
+ *   Drupal password.
+ *
+ * @param $number_of_posts
+ *   Number of posts to return.
+ *
+ * @param bool $bodies
+ *   Bool to determine if it should return the node body.
+ *
+ * @return mixed
+ *   Returns a response.
+ */
+function blogapi_blogger_get_recent_posts($hash, $ct, $username, $pass, $number_of_posts, $bodies = TRUE) {
+  $communicator = \Drupal::service('service.communicator.blogapi');
+  return $communicator->getRecentPosts($ct, $username, $pass, $number_of_posts, $bodies);
+}
+
+/**
+ * Helper function to extract title.
+ *
+ * @param $string
+ *   The input string.
+ *
+ * @return string
+ *   The returned title.
+ */
+function blogapi_blogger_get_title($string) {
+  if (preg_match('/<title>(.*?)<\/title>/i', $string, $title)) {
     return strip_tags($title[0]);
   }
-
   return '';
-}
-
-/**
- * Extract the node body from the contents field.
- */
-function blogapi_blogger_extract_body($contents) {
-  return preg_replace('/<title>.*?<\/title>/i', '', $contents);
 }

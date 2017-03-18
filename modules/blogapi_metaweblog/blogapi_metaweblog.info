@@ -1,7 +1,0 @@
-name = MetaWeblog Provider for BlogAPI
-description = Provides the MetaWeblog API for BlogAPI clients.
-package = Services
-core = 7.x
-dependencies[] = xmlrpc_server
-dependencies[] = blogapi
-files[] = blogapi_metaweblog.test
