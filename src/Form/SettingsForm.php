@@ -2,6 +2,7 @@
 
 namespace Drupal\blogapi\Form;
 
+use Drupal\Core\Url;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\Core\Form\ConfigFormBase;
@@ -122,6 +123,16 @@ class SettingsForm extends ConfigFormBase {
         }
       }
     }
+
+    // Markup element with info.
+    $form['blogapi_info_wrapper'] = array(
+      '#type' => 'fieldset',
+      '#title' => $this->t('BlogAPI endpoint'),
+      'blogapi_info' => [
+        '#type' => 'markup',
+        '#markup' => Url::fromRoute('xmlrpc')->setAbsolute()->toString(),
+      ],
+    );
 
     // Element to select enabled content types.
     $form['content_types'] = array(
