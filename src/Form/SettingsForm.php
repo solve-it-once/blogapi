@@ -260,7 +260,7 @@ class SettingsForm extends ConfigFormBase {
       }
     }
 
-    drupal_set_message($this->t('BlogAPI settings have been saved.'));
+    $this->messenger()->addStatus($this->t('BlogAPI settings have been saved.'));
   }
 
 }
