@@ -1,0 +1,31 @@
+{
+    "name": "drupal/blogapi",
+    "description": "The Blog API module enables a post to be published to a site via external GUI applications.",
+    "type": "drupal-module",
+    "license": "GPL-2.0+",
+    "minimum-stability": "dev",
+    "homepage": "https://www.drupal.org/project/blogapi",
+    "authors": [
+        {
+            "name": "Cameron Eagans",
+            "homepage": "https://www.drupal.org/u/cweagans",
+            "role": "Maintainer"
+        },
+        {
+            "name": "Artem Miroshnyk",
+            "homepage": "https://www.drupal.org/u/m1r1k",
+            "role": "Maintainer"
+        }
+    ],
+    "support": {
+        "issues": "https://www.drupal.org/project/issues/blogapi",
+        "source": "http://git.drupalcode.org/project/blogapi"
+    },
+    "require": {
+        "php": "> 7.2",
+        "drupal/core": "^8.7|^9.0"
+    },
+    "require-dev": {
+        "roave/security-advisories": "dev-master"
+    }
+}
