@@ -1,20 +1,26 @@
 {
     "name": "drupal/blogapi",
-    "description": "The Blog API module enables a post to be published to a site via external GUI applications.",
+    "description": "Allow users to post content using applications that support Blog APIs. Requires one or more provider modules to be enabled.",
     "type": "drupal-module",
     "license": "GPL-2.0+",
     "minimum-stability": "dev",
     "homepage": "https://www.drupal.org/project/blogapi",
     "authors": [
         {
-            "name": "Cameron Eagans",
-            "homepage": "https://www.drupal.org/u/cweagans",
-            "role": "Maintainer"
+            "name": "Damien McKenna",
+            "homepage": "https://www.drupal.org/user/108450"
         },
         {
-            "name": "Artem Miroshnyk",
-            "homepage": "https://www.drupal.org/u/m1r1k",
-            "role": "Maintainer"
+            "name": "Alec Smrekar",
+            "homepage": "https://www.drupal.org/user/1050782"
+        },
+        {
+            "name": "cweagans",
+            "homepage": "https://www.drupal.org/u/cweagans"
+        },
+        {
+            "name": "m1r1k",
+            "homepage": "https://www.drupal.org/u/m1r1k"
         }
     ],
     "support": {
@@ -22,10 +28,7 @@
         "source": "http://git.drupalcode.org/project/blogapi"
     },
     "require": {
-        "php": "> 7.2",
-        "drupal/core": "^8.7|^9.0"
-    },
-    "require-dev": {
-        "roave/security-advisories": "dev-master"
+        "drupal/core": "^8.7|^9.0",
+        "drupal/xmlrpc": "*"
     }
 }
