@@ -2,6 +2,7 @@
 
 namespace Drupal\blogapi;
 
+use Drupal\Component\Utility\Environment;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\Core\Url;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
@@ -658,7 +659,7 @@ class BlogapiCommunicator {
     if ($entity) {
 
       // Check the upload filesize.
-      $max_filesize = file_upload_max_size();
+      $max_filesize = Environment::getUploadMaxSize();
       if ($max_filesize && $entity->getSize() > $max_filesize) {
         return $this->returnXmlError(self::BLOGAPI_XML_ERROR_IMG_SIZE, $max_filesize);
       }
