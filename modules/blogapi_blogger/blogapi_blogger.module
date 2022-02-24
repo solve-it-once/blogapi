@@ -82,7 +82,7 @@ function blogapi_blogger_get_users_blogs($hash, $username, $pass) {
       $return[] = [
         'url' => $url->toString(),
         'blogid' => $type,
-        'blogName' => $user->getUsername() . ': ' . $type,
+        'blogName' => $user->getAccountName() . ': ' . $type,
       ];
     }
   }
