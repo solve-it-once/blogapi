@@ -29,7 +29,7 @@ class MovabletypeProvider extends ProviderBase {
         'blogapi_movabletype_publish_post',
         [
           'string',
-          'int',
+          'string',
           'string',
           'string',
         ],

@@ -357,7 +357,12 @@ class BlogapiCommunicator {
     $node->set($body_field, $body);
     $node->set($comment_field, $comment);
     $node->setTitle($data['title']);
-    $node->setPublished($data['publish']);
+    if ($data['publish']) {
+      $node->setPublished();
+    }
+    else {
+      $node->setUnpublished();
+    }
     $node->save();
     return (string) $node->id();
   }
@@ -438,7 +443,7 @@ class BlogapiCommunicator {
 
     foreach ($data as $item) {
       $term = Term::load($item['categoryId']);
-      $vocab = $term->getVocabularyId();
+      $vocab = $term->bundle();
 
       // Try to save the taxonomy term in the primary
       // taxonomy field from the settings form.
@@ -562,7 +567,12 @@ class BlogapiCommunicator {
 
     $node_manager = $this->entityTypeManager->getStorage('node');
     $node = $node_manager->create($values);
-    $node->setPublished($data['publish']);
+    if ($data['publish']) {
+      $node->setPublished();
+    }
+    else {
+      $node->setUnpublished();
+    }
     $node->save();
     $id = $node->id();
     if (is_numeric($id)) {
@@ -766,7 +776,12 @@ class BlogapiCommunicator {
       return $this->returnXmlError(self::BLOGAPI_XML_ERROR_NODE_UPDATE, $nid);
     }
 
-    $node->setPublished($publish);
+    if ($publish) {
+      $node->setPublished();
+    }
+    else {
+      $node->setUnpublished();
+    }
     return TRUE;
   }
 
@@ -840,9 +855,8 @@ class BlogapiCommunicator {
    *   The XML output.
    */
   public function formatXml($node, $bodies = TRUE) {
-    $url = $node->url();
-    $options = ['absolute' => TRUE];
-    $externalUrl = Url::fromUri('internal:' . $url, $options)->toString();
+    $url = $node->toUrl('canonical', ['absolute' => TRUE]);
+    $externalUrl = $url->toString();
 
     if ($node->isPublished()) {
       $post_status = 'published';

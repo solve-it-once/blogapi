@@ -65,12 +65,14 @@ function blogapi_metaweblog_get_recent_posts($ct, $username, $pass, $number_of_p
 function blogapi_metaweblog_edit_post($nid, $username, $pass, $data, $publish) {
   $communicator = \Drupal::service('service.communicator.blogapi');
 
+  $allow_comments = isset($data['mt_allow_comments']) ? $data['mt_allow_comments'] : NULL;
+
   $formatted = [
     'title' => $data['title'],
     'body' => $data['description'],
     'format' => $data['mt_convert_breaks'],
     'publish' => $publish,
-    'comments' => blogapi_metaweblog_decode_comment_code($data['mt_allow_comments']),
+    'comments' => blogapi_metaweblog_decode_comment_code($allow_comments),
   ];
   return $communicator->editPost($nid, $username, $pass, $formatted);
 }
