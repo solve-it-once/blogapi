@@ -70,7 +70,7 @@ function blogapi_metaweblog_edit_post($nid, $username, $pass, $data, $publish) {
   $formatted = [
     'title' => $data['title'],
     'body' => $data['description'],
-    'format' => $data['mt_convert_breaks'],
+    'format' => isset($data['mt_convert_breaks']) ? $data['mt_convert_breaks'] : NULL,
     'publish' => $publish,
     'comments' => blogapi_metaweblog_decode_comment_code($allow_comments),
   ];
@@ -101,12 +101,14 @@ function blogapi_metaweblog_edit_post($nid, $username, $pass, $data, $publish) {
 function blogapi_metaweblog_new_post($ct, $username, $pass, $data, $publish) {
   $communicator = \Drupal::service('service.communicator.blogapi');
 
+  $allow_comments = isset($data['mt_allow_comments']) ? $data['mt_allow_comments'] : NULL;
+
   $formatted = [
     'title' => $data['title'],
     'body' => $data['description'],
-    'format' => $data['mt_convert_breaks'],
+    'format' => isset($data['mt_convert_breaks']) ? $data['mt_convert_breaks'] : NULL,
     'publish' => $publish,
-    'comments' => blogapi_metaweblog_decode_comment_code($data['mt_allow_comments']),
+    'comments' => blogapi_metaweblog_decode_comment_code($allow_comments),
   ];
 
   return $communicator->newPost($ct, $username, $pass, $formatted);
