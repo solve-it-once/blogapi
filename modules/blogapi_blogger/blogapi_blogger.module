@@ -4,6 +4,7 @@
  * @file
  */
 
+use Drupal\node\Entity\NodeType;
 use Drupal\Core\Url;
 
 /**
@@ -78,12 +79,15 @@ function blogapi_blogger_get_users_blogs($hash, $username, $pass) {
   $return = [];
   foreach ($content_type as $type) {
     if ($type) {
-      $url = Url::fromUri('internal:/user/' . $user->id())->setAbsolute();
-      $return[] = [
-        'url' => $url->toString(),
-        'blogid' => $type,
-        'blogName' => $user->getAccountName() . ': ' . $type,
-      ];
+      $typeObject = NodeType::load($type);
+      if ($typeObject && $user->hasPermission('create ' . $type . ' content')) {
+        $url = Url::fromUri('internal:/user/' . $user->id())->setAbsolute();
+        $return[] = [
+          'url' => $url->toString(),
+          'blogid' => $type,
+          'blogName' => $user->getAccountName() . ': ' . $typeObject->label(),
+        ];
+      }
     }
   }
   return $return;

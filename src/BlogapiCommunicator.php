@@ -2,7 +2,9 @@
 
 namespace Drupal\blogapi;
 
+use Drupal;
 use Drupal\Component\Utility\Environment;
+use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\Core\Url;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
@@ -82,7 +84,7 @@ class BlogapiCommunicator {
    */
   public function authenticate($user, $pass, $return_object = FALSE) {
     // Login check.
-    $auth = \Drupal::service('user.auth');
+    $auth = Drupal::service('user.auth');
     if ($auth->authenticate($user, $pass)) {
       // Drupal permission check.
       $user_load = user_load_by_name($user);
@@ -665,7 +667,7 @@ class BlogapiCommunicator {
 
     $uri = 'public://' . $data['name'];
     $bits = $data['bits'];
-    $entity = file_save_data($bits, $uri);
+    $entity = Drupal::service('file.repository')->writeData($bits, $uri);
     if ($entity) {
 
       // Check the upload filesize.
@@ -675,7 +677,8 @@ class BlogapiCommunicator {
       }
 
       $new_uri = $entity->getFileUri();
-      $url = Url::fromUri(file_create_url($new_uri))->toString();
+      $file_uri = Drupal::service('file_url_generator')->generateAbsoluteString($new_uri);
+      $url = Url::fromUri($file_uri)->toString();
       return ['url' => $url, 'struct'];
     }
     return $this->returnXmlError(self::BLOGAPI_XML_ERROR_IMG_SAVE);
@@ -820,7 +823,7 @@ class BlogapiCommunicator {
     }
 
     // Run the query for recent nodes.
-    $query = \Drupal::entityQuery('node')
+    $query = Drupal::entityQuery('node')
       ->condition('type', $ct)
       ->sort('created', 'DESC')
       ->range(0, $nr);
@@ -986,7 +989,7 @@ class BlogapiCommunicator {
         return xmlrpc_error(406, t('You do not have permission to create this type of node.'));
 
       case self::BLOGAPI_XML_ERROR_NODE_DELETE:
-        return xmlrpc_error(407, t('You do not have permission to delete node @nid.', $arg));
+        return xmlrpc_error(407, t('You do not have permission to delete node @nid.', ['@nid' => $arg]));
 
       case self::BLOGAPI_XML_ERROR_IMG_SIZE:
         return xmlrpc_error(408, t('Error uploading file because it exceeded the maximum filesize of @maxsize.', array('@maxsize' => format_size($arg))));
