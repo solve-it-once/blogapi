@@ -66,10 +66,14 @@ function blogapi_metaweblog_edit_post($nid, $username, $pass, $data, $publish) {
   $communicator = \Drupal::service('service.communicator.blogapi');
 
   $allow_comments = isset($data['mt_allow_comments']) ? $data['mt_allow_comments'] : NULL;
+  $body_and_summary = $data['description'];
+  if (isset($data['mt_text_more']) && !empty($data['mt_text_more'])) {
+    $body_and_summary .= '<!--break-->' . $data['mt_text_more'];
+  }
 
   $formatted = [
     'title' => $data['title'],
-    'body' => $data['description'],
+    'body' => $body_and_summary,
     'format' => isset($data['mt_convert_breaks']) ? $data['mt_convert_breaks'] : NULL,
     'publish' => $publish,
     'comments' => blogapi_metaweblog_decode_comment_code($allow_comments),
@@ -102,10 +106,14 @@ function blogapi_metaweblog_new_post($ct, $username, $pass, $data, $publish) {
   $communicator = \Drupal::service('service.communicator.blogapi');
 
   $allow_comments = isset($data['mt_allow_comments']) ? $data['mt_allow_comments'] : NULL;
+  $body_and_summary = $data['description'];
+  if (isset($data['mt_text_more']) && !empty($data['mt_text_more'])) {
+    $body_and_summary .= '<!--break-->' . $data['mt_text_more'];
+  }
 
   $formatted = [
     'title' => $data['title'],
-    'body' => $data['description'],
+    'body' => $body_and_summary,
     'format' => isset($data['mt_convert_breaks']) ? $data['mt_convert_breaks'] : NULL,
     'publish' => $publish,
     'comments' => blogapi_metaweblog_decode_comment_code($allow_comments),
