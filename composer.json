@@ -28,7 +28,7 @@
         "source": "http://git.drupalcode.org/project/blogapi"
     },
     "require": {
-        "drupal/core": "^8.7|^9.0",
+        "drupal/core": "^8.7|^9.0|^10.0",
         "drupal/xmlrpc": "*"
     }
 }

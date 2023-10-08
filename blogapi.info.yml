@@ -1,7 +1,7 @@
 name: Blog API
 type: module
 description: Allow users to post content using applications that support Blog APIs. Requires one or more provider modules to be enabled.
-core_version_requirement: ^8 || ^9
+core_version_requirement: ^8 || ^9 || ^10
 package: Custom
 configure: blogapi.settings
 dependencies:
