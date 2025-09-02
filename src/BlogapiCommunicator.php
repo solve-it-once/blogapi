@@ -824,6 +824,7 @@ class BlogapiCommunicator {
 
     // Run the query for recent nodes.
     $query = Drupal::entityQuery('node')
+      ->accessCheck(FALSE)
       ->condition('type', $ct)
       ->sort('created', 'DESC')
       ->range(0, $nr);
