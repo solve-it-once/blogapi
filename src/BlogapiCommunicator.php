@@ -12,6 +12,7 @@ use Drupal\Core\Entity\EntityTypeManager;
 use Drupal\Core\Entity\EntityFieldManager;
 use Drupal\Core\Extension\ModuleHandler;
 use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\StringTranslation\ByteSizeMarkup;
 
 /**
  * Class BlogapiCommunicator.
@@ -969,7 +970,7 @@ class BlogapiCommunicator {
    *   The xmlrpc error object.
    */
   public function returnXmlError($error_code, $arg = 0) {
-    module_load_include('inc', 'xmlrpc', 'xmlrpc');
+    $this->moduleManager->loadInclude('xmlrpc', 'inc', 'xmlrpc');
     switch ($error_code) {
       case self::BLOGAPI_XML_ERROR_AUTH:
         return xmlrpc_error(401, t('Access denied.'));
@@ -993,7 +994,7 @@ class BlogapiCommunicator {
         return xmlrpc_error(407, t('You do not have permission to delete node @nid.', ['@nid' => $arg]));
 
       case self::BLOGAPI_XML_ERROR_IMG_SIZE:
-        return xmlrpc_error(408, t('Error uploading file because it exceeded the maximum filesize of @maxsize.', array('@maxsize' => format_size($arg))));
+        return xmlrpc_error(408, t('Error uploading file because it exceeded the maximum filesize of @maxsize.', array('@maxsize' => ByteSizeMarkup::create($arg))));
 
       case self::BLOGAPI_XML_ERROR_IMG_SAVE:
         return xmlrpc_error(409, t('Error storing file.'));
