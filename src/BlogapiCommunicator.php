@@ -13,6 +13,7 @@ use Drupal\Core\Entity\EntityFieldManager;
 use Drupal\Core\Extension\ModuleHandler;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\StringTranslation\ByteSizeMarkup;
+use Drupal\user\UserAuthenticationInterface;
 
 /**
  * Class BlogapiCommunicator.
@@ -40,14 +41,22 @@ class BlogapiCommunicator {
   public $blogapiConfig;
 
   /**
+   * The user authentication service.
+   *
+   * @var \Drupal\user\UserAuthenticationInterface
+   */
+  protected $userAuth;
+
+  /**
    * BlogapiCommunicator constructor.
    */
-  public function __construct(EntityTypeManager $entityTypeManager, EntityFieldManager $entityFieldManager, BlogapiProviderManager $blogapiProviderManager, ModuleHandler $moduleHandler, ConfigFactory $configFactory) {
+  public function __construct(EntityTypeManager $entityTypeManager, EntityFieldManager $entityFieldManager, BlogapiProviderManager $blogapiProviderManager, ModuleHandler $moduleHandler, ConfigFactory $configFactory, UserAuthenticationInterface $userAuth) {
     $this->entityTypeManager = $entityTypeManager;
     $this->entityFieldManager = $entityFieldManager;
     $this->pluginManager = $blogapiProviderManager;
     $this->moduleManager = $moduleHandler;
     $this->blogapiConfig = $configFactory->get('blogapi.settings');
+    $this->userAuth = $userAuth;
   }
 
   /**
@@ -80,25 +89,24 @@ class BlogapiCommunicator {
    * @param bool $return_object
    *   Boolean var to decide on returning the user object.
    *
-   * @return bool|object
-   *   Returns the user object or the user ID.
+   * @return \Drupal\user\UserInterface|int|false
+   *   The user object or the user ID, or FALSE if the account does not
+   *   exist, the password is wrong or the account is blocked.
    */
   public function authenticate($user, $pass, $return_object = FALSE) {
-    // Login check.
-    $auth = Drupal::service('user.auth');
-    if ($auth->authenticate($user, $pass)) {
-      // Drupal permission check.
-      $user_load = user_load_by_name($user);
-      // Possibly return the loaded user object.
-      if ($return_object) {
-        return $user_load;
-      }
-      $id = $user_load->id();
-      return (int) $id;
+    // A blocked account fails exactly like a wrong password, so callers return
+    // the same fault and the API does not reveal which accounts are blocked.
+    // The password is checked before the status so both cases also cost the
+    // same password hash.
+    $account = $this->userAuth->lookupAccount((string) $user);
+    if (!$account || !$this->userAuth->authenticateAccount($account, (string) $pass) || $account->isBlocked()) {
+      return FALSE;
     }
 
-    // Return false if authentication fails.
-    return FALSE;
+    if ($return_object) {
+      return $account;
+    }
+    return (int) $account->id();
   }
 
   /**
