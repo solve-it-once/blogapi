@@ -1,0 +1,22 @@
+# Only the fixed keys are described here. The per-content-type keys
+# (body_<type>, taxonomy_<type>, comment_<type>) cannot be expressed as a
+# mapping and are left undefined, so they are stored as they are.
+blogapi.settings:
+  type: config_object
+  label: 'Blog API settings'
+  mapping:
+    content_types:
+      type: sequence
+      label: 'Content types available to the Blog API'
+      sequence:
+        type: string
+        label: 'Content type'
+    text_format:
+      type: string
+      label: 'Text format for posts'
+    media_directory:
+      type: string
+      label: 'Base directory for uploaded media'
+    media_max_filesize:
+      type: string
+      label: 'Maximum size of uploaded media'

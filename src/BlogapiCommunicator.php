@@ -3,16 +3,23 @@
 namespace Drupal\blogapi;
 
 use Drupal;
+use Drupal\Component\Utility\Bytes;
 use Drupal\Component\Utility\Environment;
+use Drupal\Component\Render\PlainTextOutput;
 use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Term;
-use Drupal\Core\Url;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Core\Entity\EntityTypeManager;
 use Drupal\Core\Entity\EntityFieldManager;
 use Drupal\Core\Extension\ModuleHandler;
 use Drupal\Core\Config\ConfigFactory;
+use Drupal\Core\File\Event\FileUploadSanitizeNameEvent;
+use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\File\FileExists;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\StreamWrapper\StreamWrapperManager;
 use Drupal\Core\StringTranslation\ByteSizeMarkup;
+use Drupal\file\Plugin\Validation\Constraint\FileSizeLimitConstraint;
 use Drupal\user\UserAuthenticationInterface;
 
 /**
@@ -33,6 +40,22 @@ class BlogapiCommunicator {
   const BLOGAPI_XML_ERROR_NODE_DELETE = 7;
   const BLOGAPI_XML_ERROR_IMG_SIZE = 8;
   const BLOGAPI_XML_ERROR_IMG_SAVE = 9;
+  const BLOGAPI_XML_ERROR_IMG_INVALID = 10;
+
+  /**
+   * The default base directory for uploaded media.
+   */
+  const MEDIA_DIRECTORY = 'public://olw';
+
+  /**
+   * The file extensions accepted for uploaded media.
+   */
+  const MEDIA_EXTENSIONS = 'jpg jpeg png gif webp';
+
+  /**
+   * Characters kept free in a media URI for a rename suffix such as "_12".
+   */
+  const MEDIA_RENAME_RESERVE = 4;
 
   public $entityTypeManager;
   public $entityFieldManager;
@@ -674,23 +697,121 @@ class BlogapiCommunicator {
       return $this->returnXmlError(self::BLOGAPI_XML_ERROR_CT);
     }
 
-    $uri = 'public://' . $data['name'];
-    $bits = $data['bits'];
-    $entity = Drupal::service('file.repository')->writeData($bits, $uri);
-    if ($entity) {
+    // Keep only the basename of the client's file name, so the client cannot
+    // choose (or escape) the directory. Open Live Writer may send nested names
+    // such as "Open-Live-Writer/<slug>/image.png".
+    $filename = basename(str_replace('\\', '/', (string) ($data['name'] ?? '')));
+    $bits = (string) ($data['bits'] ?? '');
 
-      // Check the upload filesize.
-      $max_filesize = Environment::getUploadMaxSize();
-      if ($max_filesize && $entity->getSize() > $max_filesize) {
+    // Rename insecure file names the same way core does for form uploads.
+    $event = new FileUploadSanitizeNameEvent($filename, self::MEDIA_EXTENSIONS);
+    Drupal::service('event_dispatcher')->dispatch($event);
+    $filename = $event->getFilename();
+
+    $directory = $this->getMediaDirectory();
+    if ($directory === NULL) {
+      return $this->returnXmlError(self::BLOGAPI_XML_ERROR_IMG_SAVE);
+    }
+
+    // Validate before anything is written, so a rejected upload leaves
+    // neither a file nor a file entity behind.
+    $max_filesize = $this->getMediaMaxFilesize();
+    $file = $this->entityTypeManager->getStorage('file')->create([
+      'uid' => $user->id(),
+      'filename' => $filename,
+      'filemime' => Drupal::service('file.mime_type.guesser')->guessMimeType($filename),
+      'filesize' => strlen($bits),
+    ]);
+    $violations = Drupal::service('file.validator')->validate($file, [
+      'FileExtension' => ['extensions' => self::MEDIA_EXTENSIONS],
+      'FileNameLength' => [],
+      'FileSizeLimit' => ['fileLimit' => $max_filesize],
+    ]);
+    foreach ($violations as $violation) {
+      if ($violation->getConstraint() instanceof FileSizeLimitConstraint) {
         return $this->returnXmlError(self::BLOGAPI_XML_ERROR_IMG_SIZE, $max_filesize);
       }
-
-      $new_uri = $entity->getFileUri();
-      $file_uri = Drupal::service('file_url_generator')->generateAbsoluteString($new_uri);
-      $url = Url::fromUri($file_uri)->toString();
-      return ['url' => $url, 'struct'];
     }
-    return $this->returnXmlError(self::BLOGAPI_XML_ERROR_IMG_SAVE);
+    if (count($violations) > 0) {
+      return $this->returnXmlError(self::BLOGAPI_XML_ERROR_IMG_INVALID, PlainTextOutput::renderFromHtml((string) $violations->get(0)->getMessage()));
+    }
+
+    // The name check above ignores the directory, but the whole URI has to
+    // fit the file entity's URI field, including a suffix added on rename.
+    $max_uri_length = (int) $file->getFieldDefinition('uri')->getSetting('max_length');
+    if (mb_strlen($directory . '/' . $filename) + self::MEDIA_RENAME_RESERVE > $max_uri_length) {
+      return $this->returnXmlError(self::BLOGAPI_XML_ERROR_IMG_INVALID, (string) t('The file name is too long for the upload directory.'));
+    }
+
+    $file_system = Drupal::service('file_system');
+    if (!$file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS)) {
+      return $this->returnXmlError(self::BLOGAPI_XML_ERROR_IMG_SAVE);
+    }
+
+    try {
+      // Never replace an earlier upload that has the same name.
+      $uri = $file_system->saveData($bits, $directory . '/' . $filename, FileExists::Rename);
+    }
+    catch (FileException $e) {
+      return $this->returnXmlError(self::BLOGAPI_XML_ERROR_IMG_SAVE);
+    }
+    if (mb_strlen($uri) > $max_uri_length) {
+      // More renames than the reserve allows for; do not leave the file behind.
+      $file_system->delete($uri);
+      return $this->returnXmlError(self::BLOGAPI_XML_ERROR_IMG_INVALID, (string) t('The file name is too long for the upload directory.'));
+    }
+
+    $file->setFileUri($uri);
+    $file->setFilename($file_system->basename($uri));
+    $file->setPermanent();
+    $file->save();
+
+    return [
+      'url' => Drupal::service('file_url_generator')->generateAbsoluteString($uri),
+    ];
+  }
+
+  /**
+   * Returns the directory new media uploads are saved into.
+   *
+   * Uploads go into a subdirectory per month of the configured base
+   * directory, so no single directory grows without bound. The month is taken
+   * in the site's default time zone, so it does not depend on who uploads.
+   *
+   * @return string|null
+   *   The directory URI, e.g. "public://olw/2026-10", or NULL if the
+   *   configured base directory has no valid stream wrapper scheme.
+   */
+  protected function getMediaDirectory() {
+    $base = $this->blogapiConfig->get('media_directory') ?: self::MEDIA_DIRECTORY;
+    if (!Drupal::service('stream_wrapper_manager')->isValidUri($base)) {
+      return NULL;
+    }
+    $target = trim(StreamWrapperManager::getTarget($base), '/');
+    $prefix = StreamWrapperManager::getScheme($base) . '://' . ($target === '' ? '' : $target . '/');
+
+    $timezone = Drupal::config('system.date')->get('timezone.default') ?: date_default_timezone_get();
+    $month = Drupal::service('date.formatter')->format(Drupal::time()->getRequestTime(), 'custom', 'Y-m', $timezone);
+    return $prefix . $month;
+  }
+
+  /**
+   * Returns the largest media upload accepted, in bytes.
+   *
+   * The PHP upload limit applies, lowered by the optional
+   * "media_max_filesize" setting (bytes, or a size such as "2 MB").
+   *
+   * @return int
+   *   The size limit in bytes, or 0 for no limit.
+   */
+  protected function getMediaMaxFilesize() {
+    $limit = (int) Environment::getUploadMaxSize();
+    $configured = $this->blogapiConfig->get('media_max_filesize');
+    if ($configured) {
+      $configured = (int) Bytes::toNumber($configured);
+      $limit = $limit ? min($limit, $configured) : $configured;
+    }
+    return $limit;
   }
 
   /**
@@ -1006,6 +1127,12 @@ class BlogapiCommunicator {
 
       case self::BLOGAPI_XML_ERROR_IMG_SAVE:
         return xmlrpc_error(409, t('Error storing file.'));
+
+      case self::BLOGAPI_XML_ERROR_IMG_INVALID:
+        // $arg is plain text. The xmlrpc module writes fault strings into the
+        // response XML as they are, so the placeholder escapes it once here
+        // and the client decodes it back.
+        return xmlrpc_error(410, t('Error uploading file: @message', ['@message' => $arg]));
 
       default:
         return xmlrpc_error(400, t('Fatal error.'));
